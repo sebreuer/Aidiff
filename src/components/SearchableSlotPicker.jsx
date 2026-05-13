@@ -1,10 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PROVIDERS } from "../constants/appConfig.js";
 import { buildUnifiedModelEntries, getProvider, matchesModelSearchQuery, resolveModelLabel } from "../lib/modelUtils.js";
 import { shadow, zIndex } from "../theme/tokens.js";
 
 /** Eine Vergleichsspalte: Dropdown öffnet nach oben; Liste mit Höhenlimit; Suche unten, Tabs darüber. */
-export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlotChange, modelOptions, listsLoading, position }) {
+export function SearchableSlotPicker({
+  slotIndex,
+  providerKey,
+  modelValue,
+  onSlotChange,
+  modelOptions,
+  listsLoading,
+  position,
+  emptyPlaceholder,
+  listHint,
+  defaultOpen,
+  onOpenChange,
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filterTab, setFilterTab] = useState("all");
@@ -35,6 +47,18 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  useLayoutEffect(() => {
+    if (defaultOpen) setOpen(true);
+  }, [defaultOpen]);
+
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (prevOpenRef.current !== open) {
+      onOpenChange?.(open);
+    }
+    prevOpenRef.current = open;
+  }, [open, onOpenChange]);
+
   useEffect(() => {
     if (open) {
       setQuery("");
@@ -44,7 +68,8 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
     }
   }, [open]);
 
-  const currentLabel = resolveModelLabel(providerKey, modelValue, modelOptions);
+  const hasModel = Boolean(modelValue);
+  const currentLabel = hasModel ? resolveModelLabel(providerKey, modelValue, modelOptions) : emptyPlaceholder || resolveModelLabel(providerKey, modelValue, modelOptions);
   const R = 19;
   const hoverRadius = position === "first" ? `${R}px 0 0 0` : position === "last" ? `0 ${R}px 0 0` : "0";
 
@@ -57,6 +82,7 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listboxId}
+        aria-label={!hasModel && emptyPlaceholder ? emptyPlaceholder : undefined}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -78,12 +104,12 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg2)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: provider.dot, flexShrink: 0 }} />
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: hasModel ? provider.dot : "var(--t3)", flexShrink: 0, opacity: hasModel ? 1 : 0.55 }} />
         <span
           style={{
             fontSize: 12,
             fontWeight: 500,
-            color: "var(--t2)",
+            color: hasModel ? "var(--t2)" : "var(--t3)",
             flex: 1,
             textAlign: "left",
             overflow: "hidden",
@@ -93,7 +119,7 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
         >
           {currentLabel}
         </span>
-        <span style={{ fontSize: 10, color: "var(--t3)", flexShrink: 0 }}>{provider.sub}</span>
+        {hasModel ? <span style={{ fontSize: 10, color: "var(--t3)", flexShrink: 0 }}>{provider.sub}</span> : <span style={{ width: 1, flexShrink: 0 }} aria-hidden />}
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -126,6 +152,9 @@ export function SearchableSlotPicker({ slotIndex, providerKey, modelValue, onSlo
           <div style={{ flexShrink: 0, padding: "6px 10px", fontSize: 9, color: "var(--t3)", borderBottom: "1px solid var(--border)", background: "var(--bg2)" }}>
             {listsLoading ? "Katalog wird geladen…" : `${unified.length} Modelle · Tab filtert die Liste`}
           </div>
+          {listHint ? (
+            <div style={{ flexShrink: 0, padding: "8px 12px", fontSize: 12, color: "var(--t3)", borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>{listHint}</div>
+          ) : null}
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
             {filtered.length === 0 ? (
               <div style={{ padding: "14px 12px", fontSize: 12, color: "var(--t3)" }}>Keine Treffer</div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { META_SYSTEM, SLOT_INDICES } from "../constants/appConfig.js";
+import { META_SYSTEM } from "../constants/appConfig.js";
 import { callAnthropicAPI } from "../lib/api.js";
-import { calcCost, defaultCompareSlots, resolveModelLabel } from "../lib/modelUtils.js";
+import { calcCost, defaultCompareSlots, getActiveSlotIndices, resolveModelLabel } from "../lib/modelUtils.js";
 import { renderText } from "../lib/textMarkdown.jsx";
 import { SHADOWS } from "../theme/tokens.js";
 import { Dots } from "./Dots.jsx";
@@ -15,27 +15,34 @@ export function MetaPanel({ runs, isDark, onClose, modelOptions }) {
     const prompt = runs
       .map((r, i) => {
         const slots = r.slots || defaultCompareSlots();
-        const answers = SLOT_INDICES.map((j) => {
-          const sl = slots[j];
-          const label = resolveModelLabel(sl.providerKey, sl.modelValue, modelOptions);
-          return `${label}:\n${r.results[j] || "(keine Antwort)"}`;
-        }).join("\n\n");
+        const idx = getActiveSlotIndices(r);
+        const answers = idx
+          .map((j) => {
+            const sl = slots[j];
+            const label = resolveModelLabel(sl.providerKey, sl.modelValue, modelOptions);
+            return `${label}:\n${r.results[j] || "(keine Antwort)"}`;
+          })
+          .join("\n\n");
         return `--- Run ${i + 1}: "${r.prompt}" ---\n${answers}`;
       })
       .join("\n\n");
-    const perfSummary = SLOT_INDICES.map((j) => {
-      const avgLat = runs.map((r) => r.metas[j]?.latencyMs || 0).reduce((a, b) => a + b, 0) / runs.length;
+    const perfParts = [];
+    for (let j = 0; j < 3; j++) {
+      const relevant = runs.filter((r) => getActiveSlotIndices(r).includes(j));
+      if (!relevant.length) continue;
+      const avgLat = relevant.map((r) => r.metas[j]?.latencyMs || 0).reduce((a, b) => a + b, 0) / relevant.length;
       const avgCost =
-        runs
+        relevant
           .map((r) => {
             const meta = r.metas[j];
             const sl = (r.slots || defaultCompareSlots())[j];
             if (!meta || !sl) return 0;
             return calcCost(sl.modelValue, meta.inputTokens, meta.outputTokens) || 0;
           })
-          .reduce((a, b) => a + b, 0) / runs.length;
-      return `Spalte ${j + 1}: Ø ${(avgLat / 1000).toFixed(2)}s, Ø $${avgCost.toFixed(4)}/Anfrage`;
-    }).join(" | ");
+          .reduce((a, b) => a + b, 0) / relevant.length;
+      perfParts.push(`Spalte ${j + 1} (nur Runs mit dieser Spalte): Ø ${(avgLat / 1000).toFixed(2)}s, Ø $${avgCost.toFixed(4)}/Anfrage`);
+    }
+    const perfSummary = perfParts.join(" | ");
     callAnthropicAPI(META_SYSTEM, `${prompt}\n\nPerformance:\n${perfSummary}`, "claude-sonnet-4")
       .then((r) => {
         setText(r.text);

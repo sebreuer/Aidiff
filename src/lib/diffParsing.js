@@ -40,7 +40,8 @@ function isLikelyMiniTemplateRow(label, vals) {
   return false;
 }
 
-export function parseOneMinivergleichLine(line) {
+/** @param {string} line @param {2 | 3} columnCount */
+export function parseOneMinivergleichLine(line, columnCount = 3) {
   let t = line.trim();
   if (!t || /^#{1,4}\s/.test(t)) return null;
   t = t.replace(/^[-*]\s+/, "");
@@ -55,37 +56,38 @@ export function parseOneMinivergleichLine(line) {
     .split(/\s*·\s*/)
     .map((x) => x.trim())
     .filter((x) => x.length > 0);
-  let vals = parts.length >= 3 ? parts.slice(0, 3) : parts;
-  if (vals.length < 3 && rest.includes("|")) {
+  let vals = parts.slice(0, columnCount);
+  if (vals.length < columnCount && rest.includes("|")) {
     vals = rest
       .split(/\s*\|\s*/)
       .map((x) => x.trim())
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, columnCount);
   }
-  if (vals.length < 3 && /\s[-–—]\s/.test(rest)) {
+  if (vals.length < columnCount && /\s[-–—]\s/.test(rest)) {
     vals = rest
       .split(/\s+[-–—]\s+/)
       .map((x) => x.trim())
       .filter(Boolean)
-      .slice(0, 3);
+      .slice(0, columnCount);
   }
-  if (vals.length < 2 && rest.includes(",")) {
+  if (vals.length < columnCount && rest.includes(",")) {
     const c = rest.split(",").map((x) => x.trim()).filter(Boolean);
-    if (c.length >= 3) vals = c.slice(0, 3);
+    if (c.length >= columnCount) vals = c.slice(0, columnCount);
   }
   if (vals.length < 2) return null;
-  while (vals.length < 3) vals.push("—");
-  if (vals.length > 3) vals = vals.slice(0, 3);
+  while (vals.length < columnCount) vals.push("—");
+  if (vals.length > columnCount) vals = vals.slice(0, columnCount);
   vals = vals.map(stripMiniMarkdownCell);
   if (isLikelyMiniTemplateRow(label, vals)) return null;
   return { label: stripMiniMarkdownCell(label), vals };
 }
 
-export function parseMinivergleichLines(block) {
+/** @param {string} block @param {2 | 3} columnCount */
+export function parseMinivergleichLines(block, columnCount = 3) {
   const rows = [];
   for (const line of String(block || "").split(/\n/)) {
-    const row = parseOneMinivergleichLine(line);
+    const row = parseOneMinivergleichLine(line, columnCount);
     if (row) rows.push(row);
   }
   return rows.slice(0, 14);
@@ -103,8 +105,9 @@ function dedupeMiniRows(rows) {
   return out;
 }
 
-/** Keine „Spielerauswahl“. Immer exakt 6 Zeilen in fester Reihenfolge; fehlende Modellwerte → „—“. */
-export function normalizeMiniComparisonRows(rows) {
+/** Keine „Spielerauswahl“. Immer exakt 6 Zeilen in fester Reihenfolge; fehlende Modellwerte → „—“. @param {2 | 3} columnCount */
+export function normalizeMiniComparisonRows(rows, columnCount = 3) {
+  const dash = () => Array.from({ length: columnCount }, () => "—");
   const filtered = rows.filter((r) => r?.label && !/spielerauswahl/i.test(r.label.trim()));
   const byKey = new Map();
   for (const r of filtered) {
@@ -112,19 +115,21 @@ export function normalizeMiniComparisonRows(rows) {
   }
   return MINI_VERGLEICH_ROW_ORDER.map((name) => {
     const hit = byKey.get(name.toLowerCase());
-    if (!hit || !Array.isArray(hit.vals)) return { label: name, vals: ["—", "—", "—"] };
+    if (!hit || !Array.isArray(hit.vals)) return { label: name, vals: dash() };
     const vals = hit.vals.map(stripMiniMarkdownCell);
-    while (vals.length < 3) vals.push("—");
-    return { label: name, vals: vals.slice(0, 3) };
+    while (vals.length < columnCount) vals.push("—");
+    return { label: name, vals: vals.slice(0, columnCount) };
   });
 }
 
-export function emptyMiniDisplayRows() {
-  return MINI_VERGLEICH_ROW_ORDER.map((name) => ({ label: name, vals: ["—", "—", "—"] }));
+/** @param {2 | 3} columnCount */
+export function emptyMiniDisplayRows(columnCount = 3) {
+  const dash = Array.from({ length: columnCount }, () => "—");
+  return MINI_VERGLEICH_ROW_ORDER.map((name) => ({ label: name, vals: [...dash] }));
 }
 
-/** Minivergleich auch nach Einordnung oder mit ##-Überschrift; Fallback: passende Zeilen im ganzen Text. */
-export function parseDiffSections(raw) {
+/** Minivergleich auch nach Einordnung oder mit ##-Überschrift; Fallback: passende Zeilen im ganzen Text. @param {2 | 3} columnCount */
+export function parseDiffSections(raw, columnCount = 3) {
   const full = String(raw || "").trim();
   if (!full) return { einordnung: "", miniRows: [] };
 
@@ -145,17 +150,17 @@ export function parseDiffSections(raw) {
   }
   if (!einordnung) einordnung = full;
 
-  let miniRows = parseMinivergleichLines(miniBlock);
+  let miniRows = parseMinivergleichLines(miniBlock, columnCount);
   if (miniRows.length === 0) {
     for (const line of full.split(/\n/)) {
       const lt = line.trim();
       if (!/^\*\*/.test(lt)) continue;
-      const row = parseOneMinivergleichLine(line);
+      const row = parseOneMinivergleichLine(line, columnCount);
       if (row) miniRows.push(row);
     }
-    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows));
+    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount);
   } else {
-    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows));
+    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount);
   }
 
   return { einordnung, miniRows };

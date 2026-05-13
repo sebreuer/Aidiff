@@ -1,9 +1,11 @@
 import { parseDiffSections } from "../lib/diffParsing.js";
+import { runActiveSlotCount } from "../lib/modelUtils.js";
 import { renderText } from "../lib/textMarkdown.jsx";
 import { DiffMiniVergleichCard } from "./DiffMiniVergleichCard.jsx";
 
 export function DiffUnterschiedeBody({ run, slots, modelOptions, isDark }) {
-  const { einordnung, miniRows } = parseDiffSections(run.diff);
+  const columnCount = runActiveSlotCount(run);
+  const { einordnung, miniRows } = parseDiffSections(run.diff, columnCount);
   const proseTrim = String(einordnung || "").trim();
 
   return (
@@ -15,7 +17,7 @@ export function DiffUnterschiedeBody({ run, slots, modelOptions, isDark }) {
           <span style={{ fontSize: 12, color: "var(--t3)" }}>Kein Fließtext unter „Einordnung“.</span>
         )}
       </div>
-      <DiffMiniVergleichCard rows={miniRows} slots={slots} modelOptions={modelOptions} isDark={isDark} />
+      <DiffMiniVergleichCard rows={miniRows} slots={slots} modelOptions={modelOptions} isDark={isDark} columnCount={columnCount} />
     </div>
   );
 }

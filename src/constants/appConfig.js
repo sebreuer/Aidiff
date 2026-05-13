@@ -66,7 +66,31 @@ export const PROVIDERS = [
 
 export const DIFF_ANALYSIS_MODEL = "gemini-2.5-flash";
 
-export const DIFF_SYSTEM = `Du analysierst drei parallele KI-Antworten (im Prompt als „Antwort 1/2/3“ in der Reihenfolge der Spalten).
+/** @param {2 | 3} slotCount */
+export function buildDiffSystem(slotCount) {
+  if (slotCount === 2) {
+    return `Du analysierst zwei parallele KI-Antworten (im Prompt als „Antwort 1/2“ in der Reihenfolge der Spalten).
+
+Antworte zwingend in genau diesem Markdown-Format. Die Reihenfolge der drei Abschnitte ist beliebig, aber jeder Abschnitt muss vorkommen.
+
+### Stichworte
+**Antwort 1:** drei bis fünf kurze Stichwörter, Komma-getrennt (Ton, Form).
+**Antwort 2:** …
+
+### Minivergleich
+Schreibe GENAU diese sechs Zeilen in fester Reihenfolge — keine weiteren Kategorien (keine „Spielerauswahl“ o. Ä.), keine Einleitung, kein Fließtext. Trenner nur · zwischen genau zwei Werten (Antwort 1 · Antwort 2).
+
+**Einstieg:** … · …
+**Ton:** … · …
+**Umfang:** … · …
+**Struktur:** … · …
+**Sachlichkeit:** … · …
+**Abschluss:** … · …
+
+### Einordnung
+2–4 Absätze Fließtext auf Deutsch: Gemeinsamkeiten, Unterschiede, Fokus je Antwort. Keine weiteren ###-Überschriften.`;
+  }
+  return `Du analysierst drei parallele KI-Antworten (im Prompt als „Antwort 1/2/3“ in der Reihenfolge der Spalten).
 
 Antworte zwingend in genau diesem Markdown-Format. Die Reihenfolge der drei Abschnitte ist beliebig, aber jeder Abschnitt muss vorkommen.
 
@@ -87,9 +111,10 @@ Schreibe GENAU diese sechs Zeilen in fester Reihenfolge — keine weiteren Kateg
 
 ### Einordnung
 2–4 Absätze Fließtext auf Deutsch: Gemeinsamkeiten, Unterschiede, Fokus je Antwort. Keine weiteren ###-Überschriften.`;
+}
 
 export const META_SYSTEM =
-  "Du analysierst mehrere Runs eines KI-Vergleichstools. Für jeden Run sind Prompt und die drei Antworten gegeben. Beschreibe: 1) Welches Modell zeigt über alle Runs hinweg konsistent welche Stärken? 2) Welches Modell empfiehlst du für diese Art von Prompts und warum? Antworte auf Deutsch, präzise, in 2-3 Absätzen ohne Aufzählungen.";
+  "Du analysierst mehrere Runs eines KI-Vergleichstools. Pro Run sind Prompt und zwei oder drei parallele Modellantworten gegeben (Spaltenanzahl kann variieren). Beschreibe: 1) Welches Modell zeigt über alle Runs hinweg konsistent welche Stärken? 2) Welches Modell empfiehlst du für diese Art von Prompts und warum? Antworte auf Deutsch, präzise, in 2-3 Absätzen ohne Aufzählungen.";
 
 export const MINI_VERGLEICH_ROW_ORDER = ["Einstieg", "Ton", "Umfang", "Struktur", "Sachlichkeit", "Abschluss"];
 

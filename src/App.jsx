@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AIDIFF_USE_MOCK, DIFF_ANALYSIS_MODEL, DIFF_SYSTEM, SETTINGS_PROVIDER_ORDER, SLOT_INDICES } from "./constants/appConfig.js";
+import { AIDIFF_USE_MOCK, DIFF_ANALYSIS_MODEL, buildDiffSystem, SETTINGS_PROVIDER_ORDER } from "./constants/appConfig.js";
 import { AnimatedBrandLogo } from "./components/AnimatedBrandLogo.jsx";
 import { CollapsedRun } from "./components/CollapsedRun.jsx";
+import { ComposerModelSlots } from "./components/ComposerModelSlots.jsx";
 import { ComposerStyleIconButton } from "./components/ComposerStyleIconButton.jsx";
 import { FileChip } from "./components/FileChip.jsx";
 import { HeaderWordmark } from "./components/HeaderWordmark.jsx";
 import { MetaPanel } from "./components/MetaPanel.jsx";
 import { RunEntry } from "./components/RunEntry.jsx";
-import { SearchableSlotPicker } from "./components/SearchableSlotPicker.jsx";
 import { SettingsModal } from "./components/SettingsModal.jsx";
 import { callAnthropicAPI, callGoogleAPI, callOpenAIAPI } from "./lib/api.js";
 import {
@@ -18,7 +18,7 @@ import {
   markStaleCatalogRetried,
   readModelCatalogFromStorage,
 } from "./lib/modelCatalog.js";
-import { defaultCompareSlots, defaultModelOptions, getProvider, resolveModelLabel } from "./lib/modelUtils.js";
+import { defaultCompareSlotsTwo, defaultModelOptions, getActiveSlotIndices, getProvider, resolveModelLabel } from "./lib/modelUtils.js";
 import { SHADOWS } from "./theme/tokens.js";
 
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
   const [composerHovered, setComposerHovered] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [compareSlots, setCompareSlots] = useState(() => defaultCompareSlots());
+  const [compareSlots, setCompareSlots] = useState(() => defaultCompareSlotsTwo());
   const [modelOptions, setModelOptions] = useState(() => defaultModelOptions());
   const [modelListsLoaded, setModelListsLoaded] = useState(false);
   const [catalogUpdatedAt, setCatalogUpdatedAt] = useState(null);
@@ -235,14 +235,18 @@ export default function App() {
 
     const runId = Date.now();
     const snapshot = compareSlots.map((s) => ({ ...s }));
+    const n = snapshot.length;
+    const activeIndices = Array.from({ length: n }, (_, i) => i);
+    const usedThird = n === 3;
     const newRun = {
       id: runId,
       prompt: p,
       slots: snapshot,
+      usedThirdSlot: usedThird,
       results: {},
       metas: {},
       errors: {},
-      loading: { 0: true, 1: true, 2: true },
+      loading: { 0: n > 0, 1: n > 1, 2: n > 2 },
       diff: "",
       diffLoading: false,
     };
@@ -250,7 +254,8 @@ export default function App() {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
 
     const settled = await Promise.allSettled(
-      snapshot.map((slot) => {
+      activeIndices.map((i) => {
+        const slot = snapshot[i];
         const opts = modelOptions[slot.providerKey];
         if (opts?.length && !opts.some((o) => o.value === slot.modelValue)) {
           return Promise.reject(new Error(`Modell nicht in der geladenen Liste: ${slot.modelValue}`));
@@ -267,20 +272,19 @@ export default function App() {
     const nr = {};
     const nm = {};
     const ne = {};
-    const nl = {};
-    SLOT_INDICES.forEach((i) => {
-      nl[i] = false;
-      if (settled[i].status === "fulfilled") {
-        const { text, ...meta } = settled[i].value;
-        nr[i] = text;
-        nm[i] = { ...meta, text };
-      } else ne[i] = settled[i].reason.message;
+    const nl = { 0: false, 1: false, 2: false };
+    activeIndices.forEach((slotIdx, j) => {
+      if (settled[j].status === "fulfilled") {
+        const { text, ...meta } = settled[j].value;
+        nr[slotIdx] = text;
+        nm[slotIdx] = { ...meta, text };
+      } else ne[slotIdx] = settled[j].reason.message;
     });
     setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, results: nr, metas: nm, errors: ne, loading: nl } : r)));
     setRunning(false);
 
     const catalogFetchedAtBeforeRetry = catalogUpdatedAt;
-    const anyModelCatalogError = SLOT_INDICES.some((i) => ne[i] && errorSuggestsStaleModelCatalog(ne[i]));
+    const anyModelCatalogError = activeIndices.some((i) => ne[i] && errorSuggestsStaleModelCatalog(ne[i]));
     if (anyModelCatalogError && !hasAlreadyStaleCatalogRetried(catalogFetchedAtBeforeRetry)) {
       setCatalogRefreshing(true);
       try {
@@ -295,11 +299,14 @@ export default function App() {
       }
     }
 
-    if (SLOT_INDICES.every((i) => nr[i])) {
+    if (activeIndices.every((i) => nr[i])) {
       setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diffLoading: true } : r)));
       try {
-        const dp = `Prompt: "${p}"\n\n${snapshot.map((slot, i) => `${resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}:\n${nr[i]}`).join("\n\n")}`;
-        const { text } = await callGoogleAPI(DIFF_SYSTEM, dp, DIFF_ANALYSIS_MODEL, { maxOutputTokens: 4096 });
+        const slotCount = activeIndices.length;
+        const dp = `Prompt: "${p}"\n\n${activeIndices
+          .map((i, k) => `${resolveModelLabel(snapshot[i].providerKey, snapshot[i].modelValue, modelOptions)} (Antwort ${k + 1}):\n${nr[i]}`)
+          .join("\n\n")}`;
+        const { text } = await callGoogleAPI(buildDiffSystem(slotCount), dp, DIFF_ANALYSIS_MODEL, { maxOutputTokens: 4096 });
         setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diff: text, diffLoading: false } : r)));
       } catch (e) {
         const msg = e?.message ? String(e.message).slice(0, 500) : "Unbekannter Fehler";
@@ -310,7 +317,7 @@ export default function App() {
     }
   }, [canSend, prompt, file, fileContent, compareSlots, modelOptions, catalogUpdatedAt]);
 
-  const completedRuns = runs.filter((r) => SLOT_INDICES.every((i) => r.results[i] || r.errors[i]));
+  const completedRuns = runs.filter((r) => getActiveSlotIndices(r).every((i) => r.results[i] || r.errors[i]));
   const providerSettingRows = useMemo(() => SETTINGS_PROVIDER_ORDER.map((key) => getProvider(key)), []);
 
   const saveApiKeySettings = useCallback(() => {
@@ -355,30 +362,12 @@ export default function App() {
       style={{ borderRadius: 20, background: "var(--bg)", boxShadow: composerShadow, border: "1px solid transparent", transition: "box-shadow 0.15s ease", cursor: "text" }}
       onClick={() => textareaRef.current?.focus()}
     >
-      <div style={{ display: "flex", borderBottom: "1px solid var(--border)" }}>
-        {SLOT_INDICES.map((i) => {
-          const slot = compareSlots[i];
-          return (
-            <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", borderRight: i < SLOT_INDICES.length - 1 ? "1px solid var(--border)" : "none" }}>
-              <SearchableSlotPicker
-                slotIndex={i}
-                providerKey={slot.providerKey}
-                modelValue={slot.modelValue}
-                onSlotChange={(nextSlot) => {
-                  setCompareSlots((prev) => {
-                    const next = [...prev];
-                    next[i] = nextSlot;
-                    return next;
-                  });
-                }}
-                modelOptions={modelOptions}
-                listsLoading={!modelListsLoaded || catalogRefreshing}
-                position={i === 0 ? "first" : i === SLOT_INDICES.length - 1 ? "last" : "middle"}
-              />
-            </div>
-          );
-        })}
-      </div>
+      <ComposerModelSlots
+        compareSlots={compareSlots}
+        setCompareSlots={setCompareSlots}
+        modelOptions={modelOptions}
+        listsLoading={!modelListsLoaded || catalogRefreshing}
+      />
       {file && (
         <div style={{ padding: "10px 16px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
           <FileChip
@@ -393,7 +382,7 @@ export default function App() {
       <textarea
         ref={textareaRef}
         value={prompt}
-        placeholder="Vergleiche drei Modelle (Spalten frei wählbar)…"
+        placeholder="Zwei oder drei Modelle vergleichen…"
         onChange={(e) => {
           setPrompt(e.target.value);
           adjustHeight();

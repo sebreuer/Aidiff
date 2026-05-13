@@ -33,10 +33,40 @@ export function defaultCompareSlots() {
   }));
 }
 
+/** Standard-Composer: zwei Spalten. */
+export function defaultCompareSlotsTwo() {
+  return defaultCompareSlots().slice(0, 2);
+}
+
+/** Dritte Spalte beim „+“ (drittes Mock-Modell bzw. dritter Anbieter). */
+export function defaultExtraCompareSlot() {
+  const all = defaultCompareSlots();
+  return all[2] ? { ...all[2] } : { providerKey: PROVIDERS[2].key, modelValue: PROVIDERS[2].models[0].value };
+}
+
 export function calcCost(mv, inp, out) {
   const p = MODEL_PRICING[mv];
   if (!p) return null;
   return (inp / 1e6) * p.input + (out / 1e6) * p.output;
+}
+
+/** @param {{ usedThirdSlot?: boolean, slots?: { providerKey: string, modelValue: string }[] } | undefined} run */
+export function runActiveSlotCount(run) {
+  const slots = run?.slots;
+  if (Array.isArray(slots)) {
+    if (slots.length === 2) return 2;
+    if (slots.length >= 3) {
+      if (run.usedThirdSlot === false) return 2;
+      return 3;
+    }
+  }
+  if (run?.usedThirdSlot === false) return 2;
+  return 3;
+}
+
+/** @param {{ usedThirdSlot?: boolean } | undefined} run */
+export function getActiveSlotIndices(run) {
+  return runActiveSlotCount(run) === 2 ? [0, 1] : [0, 1, 2];
 }
 
 export function buildUnifiedModelEntries(modelOptions) {

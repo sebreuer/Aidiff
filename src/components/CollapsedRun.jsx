@@ -1,5 +1,4 @@
-import { SLOT_INDICES } from "../constants/appConfig.js";
-import { defaultCompareSlots, getProvider } from "../lib/modelUtils.js";
+import { defaultCompareSlots, getActiveSlotIndices, getProvider } from "../lib/modelUtils.js";
 import { SHADOWS } from "../theme/tokens.js";
 
 export function CollapsedRun({ run, isDark, onExpand }) {
@@ -28,7 +27,7 @@ export function CollapsedRun({ run, isDark, onExpand }) {
       </svg>
       <span style={{ fontSize: 13, color: "var(--t2)", fontStyle: "italic", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>"{run.prompt}"</span>
       <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-        {SLOT_INDICES.map((i) => {
+        {getActiveSlotIndices(run).map((i) => {
           const sl = slots[i] || { providerKey: "gpt" };
           const pv = getProvider(sl.providerKey);
           return <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot }} />;

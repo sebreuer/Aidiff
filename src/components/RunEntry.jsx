@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { DIFF_ANALYSIS_MODEL, SLOT_INDICES } from "../constants/appConfig.js";
-import { calcCost, defaultCompareSlots, getProvider, resolveModelLabel } from "../lib/modelUtils.js";
+import { DIFF_ANALYSIS_MODEL } from "../constants/appConfig.js";
+import { calcCost, defaultCompareSlots, getActiveSlotIndices, getProvider, resolveModelLabel } from "../lib/modelUtils.js";
 import { renderText } from "../lib/textMarkdown.jsx";
 import { SHADOWS } from "../theme/tokens.js";
 import { ComposerStyleIconButton } from "./ComposerStyleIconButton.jsx";
@@ -14,9 +14,10 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
   const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
   const diffReady = !!run.diff || run.diffLoading;
   const slots = run.slots || defaultCompareSlots();
-  const perfReady = SLOT_INDICES.every((i) => run.metas[i]);
+  const activeIndices = getActiveSlotIndices(run);
+  const perfReady = activeIndices.every((i) => run.metas[i]);
 
-  const perfData = SLOT_INDICES.map((i) => {
+  const perfData = activeIndices.map((i) => {
     const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
     const meta = run.metas[i];
     if (!meta) return null;
@@ -40,7 +41,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
   const bestCost = valid.length ? Math.min(...valid.filter((d) => d.cost !== null).map((d) => d.cost)) : null;
   const bestTps = valid.length ? Math.max(...valid.map((d) => d.tps)) : null;
   const bestOutput = valid.length ? Math.max(...valid.map((d) => d.outputTokens)) : null;
-  const canShowResultBadges = valid.length === 3;
+  const canShowResultBadges = valid.length === activeIndices.length && valid.length > 0;
 
   return (
     <div style={{ background: "var(--bg)", borderRadius: 20, boxShadow: shadows.default, border: "1px solid transparent", overflow: "hidden", padding: "16px" }}>
@@ -85,10 +86,10 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
 
       {activeTab === "results" && (
         <div style={{ display: "flex", gap: 10 }}>
-          {SLOT_INDICES.map((i) => {
+          {activeIndices.map((i, j) => {
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
-            const d = perfData[i];
+            const d = perfData[j];
             const timeLabel = d ? `${(d.latencyMs / 1000).toFixed(2)}s` : "—";
             const costPer1kLabel = d?.cost != null ? `$${(d.cost * 1000).toFixed(2)}/1K` : "—";
             const showBadges = canShowResultBadges && d && !run.loading[i] && !run.errors[i];
@@ -248,8 +249,8 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
 
       {activeTab === "perf" && (
         <div style={{ display: "flex", gap: 10 }}>
-          {SLOT_INDICES.map((i) => {
-            const d = perfData[i];
+          {activeIndices.map((i, j) => {
+            const d = perfData[j];
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
             return (

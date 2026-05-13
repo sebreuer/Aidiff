@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { SLOT_INDICES } from "../constants/appConfig.js";
 import { emptyMiniDisplayRows, stripMiniMarkdownCell } from "../lib/diffParsing.js";
 import { getProvider, resolveModelLabel, shortenModelHeadline } from "../lib/modelUtils.js";
 import { SHADOWS, border } from "../theme/tokens.js";
 
-export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark }) {
+export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, columnCount = 3 }) {
   const [hovered, setHovered] = useState(false);
   const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
   const innerLine = border.line;
+  const colIdx = Array.from({ length: columnCount }, (_, i) => i);
   const cell = {
     padding: "10px 12px",
     verticalAlign: "middle",
@@ -15,7 +15,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark }) {
     lineHeight: 1.45,
   };
   const labelCell = { ...cell, whiteSpace: "nowrap" };
-  const displayRows = rows.length > 0 ? rows : emptyMiniDisplayRows();
+  const displayRows = rows.length > 0 ? rows : emptyMiniDisplayRows(columnCount);
   const allPlaceholders = displayRows.every((r) => r.vals.every((v) => v === "—"));
 
   return (
@@ -48,7 +48,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark }) {
         <thead>
           <tr style={{ background: "var(--bg2)" }}>
             <th scope="col" style={{ ...labelCell, fontWeight: 600, color: "var(--t3)", textAlign: "left", borderRight: innerLine, borderBottom: innerLine }} />
-            {SLOT_INDICES.map((i) => {
+            {colIdx.map((i) => {
               const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
               const pv = getProvider(slot.providerKey);
               const lab = resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
@@ -62,7 +62,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark }) {
                     fontWeight: 600,
                     color: "var(--text)",
                     borderBottom: innerLine,
-                    borderRight: i < SLOT_INDICES.length - 1 ? innerLine : "none",
+                    borderRight: i < columnCount - 1 ? innerLine : "none",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
