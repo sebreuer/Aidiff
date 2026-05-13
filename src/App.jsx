@@ -63,7 +63,7 @@ export default function App() {
     mq.addEventListener("change", (e) => setIsDark(e.matches));
     const style = document.createElement("style");
     style.textContent = `
-      :root{--bg:#fff;--bg2:#f7f7f5;--bg3:#efefed;--text:#1a1a1a;--t2:#6b7280;--t3:#9ca3af;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--danger:#dc2626;--modal-input-bg:#f3f4f6;--modal-input-border:rgba(0,0,0,0.12);--modal-input-border-hover:rgba(0,0,0,0.2);--modal-input-border-focus:#1a1a1a;--modal-input-ring:rgba(26,26,26,0.12);--modal-secondary-border:rgba(0,0,0,0.14);--modal-secondary-hover:rgba(0,0,0,0.06);}
+      :root{--bg:#fff;--bg2:#f7f7f5;--bg3:#efefed;--text:#1a1a1a;--t2:#6b7280;--t3:#9ca3af;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--danger:#dc2626;--modal-input-bg:#f3f4f6;--modal-input-border:rgba(0,0,0,0.12);--modal-input-border-hover:rgba(0,0,0,0.2);--modal-input-border-focus:#1a1a1a;--modal-input-ring:rgba(26,26,26,0.12);--modal-secondary-border:rgba(0,0,0,0.14);--modal-secondary-hover:rgba(0,0,0,0.06);--aidiff-composer-clearance:clamp(160px, 22vh, 280px);}
       @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;--text:#ececec;--t2:#9ca3af;--t3:#6b7280;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--modal-input-bg:#141414;--modal-input-border:rgba(255,255,255,0.12);--modal-input-border-hover:rgba(255,255,255,0.22);--modal-input-border-focus:#e5e5e5;--modal-input-ring:rgba(255,255,255,0.12);--modal-secondary-border:rgba(255,255,255,0.16);--modal-secondary-hover:rgba(255,255,255,0.06);}}
       *{box-sizing:border-box;margin:0;padding:0;}
       html,body,#root{height:100%;}
@@ -85,11 +85,13 @@ export default function App() {
       .aidiff-settings-btn-primary:not(:disabled):hover{transform:scale(1.02)}
       .aidiff-settings-btn-primary:not(:disabled):active{transform:scale(0.98)}
       .aidiff-settings-btn-secondary{transition:background 0.1s ease, border-color 0.1s ease, color 0.1s ease}
-      .scroll-area{flex:1;overflow-y:auto;padding:20px 24px 12px;}
+      .scroll-area{flex:1;overflow-y:auto;padding:20px 24px;padding-bottom:calc(12px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
       .scroll-area::-webkit-scrollbar{width:6px;}
       .scroll-area::-webkit-scrollbar-track{background:transparent;}
       .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-      .composer-wrap{flex-shrink:0;padding:10px 24px 20px;background:var(--bg);}
+      .composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:10px 24px calc(32px + env(safe-area-inset-bottom, 0px));background:transparent;pointer-events:none;}
+      .composer-wrap .composer-inner{pointer-events:auto;}
+      .aidiff-meta-above-composer{flex-shrink:0;padding:0 24px;padding-bottom:calc(10px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
     `;
     document.head.appendChild(style);
   }, []);
@@ -634,13 +636,15 @@ export default function App() {
       </div>
 
       {showMeta && completedRuns.length >= 2 && (
-        <div style={{ padding: "0 24px 10px", flexShrink: 0 }}>
+        <div className="aidiff-meta-above-composer">
           <MetaPanel runs={completedRuns} isDark={isDark} onClose={() => setShowMeta(false)} modelOptions={modelOptions} />
         </div>
       )}
 
       <div className="composer-wrap">
-        <div style={{ maxWidth: 672, margin: "0 auto" }}>{composerBlock}</div>
+        <div className="composer-inner" style={{ maxWidth: 672, margin: "0 auto" }}>
+          {composerBlock}
+        </div>
       </div>
       {settingsModal}
     </div>
