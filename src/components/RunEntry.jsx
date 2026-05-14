@@ -10,6 +10,7 @@ import { Dots } from "./Dots.jsx";
 import { PerfMetric } from "./PerfMetric.jsx";
 import { border, modalBackdrop, zIndex } from "../theme/tokens.js";
 import { TabBar } from "./TabBar.jsx";
+import { IconSquareDashedText } from "./tabIcons.jsx";
 
 function truncateLead(s, max = 56) {
   const x = String(s || "").replace(/\s+/g, " ").trim();

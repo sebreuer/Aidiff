@@ -169,6 +169,7 @@ export default function App() {
   const settingsMenuRef = useRef(null);
   const settingsModalRef = useRef(null);
   const scrollAreaRef = useRef(null);
+  const composerDockRef = useRef(null);
   const [scrollAreaVBarPx, setScrollAreaVBarPx] = useState(0);
 
   const dockedInHeader = runs.length > 0;
@@ -198,6 +199,30 @@ export default function App() {
       window.clearTimeout(t);
     };
   }, [runs, expandedRuns, showMeta, running]);
+
+  /** Scroll-Fläche: unteren Abstand = reale Höhe des fixierten Composer-Docks (Moduswechsel, 2/3 Prompts, Datei-Chip). */
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (runs.length === 0) {
+      root.style.removeProperty("--aidiff-composer-clearance");
+      return undefined;
+    }
+    const el = composerDockRef.current;
+    if (!el) return undefined;
+    const apply = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      root.style.setProperty("--aidiff-composer-clearance", `${Math.max(h + 16, 140)}px`);
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      root.style.removeProperty("--aidiff-composer-clearance");
+    };
+  }, [runs.length]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-color-scheme", isDark ? "dark" : "light");
@@ -247,7 +272,7 @@ export default function App() {
       .scroll-area::-webkit-scrollbar-track{background:transparent;}
       .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
       .composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:28;padding:10px 24px calc(32px + env(safe-area-inset-bottom, 0px));background:transparent;pointer-events:none;overflow:visible;}
-      .composer-wrap .composer-inner{pointer-events:auto;overflow:visible;}
+      .composer-wrap .composer-inner{pointer-events:auto;overflow:visible;display:flex;flex-direction:column;gap:12px;}
       .aidiff-meta-above-composer{flex-shrink:0;padding:0 24px;padding-bottom:calc(10px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
     `;
     document.head.appendChild(style);
@@ -847,24 +872,66 @@ export default function App() {
             </div>
           </div>
         </header>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           <div
             style={{
-              fontSize: "clamp(22px, 3.8vw, 30px)",
-              fontWeight: 700,
-              fontFamily: '"Unbounded", system-ui, sans-serif',
-              color: "var(--text)",
-              marginBottom: 24,
-              textAlign: "center",
-              letterSpacing: "0.005em",
-              lineHeight: 1.25,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: "100%",
             }}
           >
-            {t("emptyState.title")}
-          </div>
-          <div style={{ width: "100%", maxWidth: 672 }}>
-            <CompareModeSwitch mode={compareMode} onModeChange={handleCompareMode} disabled={running} />
-            {composerBlock}
+            {/* Gleiches flex-Grow wie unten → Block vertikal zentriert; minHeight hält Inhalt unter dem Logo */}
+            <div
+              aria-hidden
+              style={{
+                flex: "1 1 0%",
+                minHeight: "max(0px, calc(50vh - 112px - 56px + 12px))",
+                minWidth: 0,
+              }}
+            />
+            <div
+              style={{
+                flex: "0 0 auto",
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "0 24px 32px",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 672,
+                  flexShrink: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: 16,
+                  position: "relative",
+                  zIndex: 5,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "clamp(22px, 3.8vw, 30px)",
+                    fontWeight: 700,
+                    fontFamily: '"Unbounded", system-ui, sans-serif',
+                    color: "var(--text)",
+                    textAlign: "center",
+                    letterSpacing: "0.005em",
+                    lineHeight: 1.25,
+                    flexShrink: 0,
+                  }}
+                >
+                  {t("emptyState.title")}
+                </div>
+                <CompareModeSwitch mode={compareMode} onModeChange={handleCompareMode} disabled={running} />
+                <div style={{ position: "relative", zIndex: 0, flexShrink: 0 }}>{composerBlock}</div>
+              </div>
+            </div>
+            <div aria-hidden style={{ flex: "1 1 0%", minHeight: 0, minWidth: 0 }} />
           </div>
         </div>
         {settingsModal}
@@ -946,7 +1013,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="composer-wrap">
+      <div className="composer-wrap" ref={composerDockRef}>
         <div className="composer-inner" style={{ maxWidth: 672, margin: "0 auto" }}>
           <CompareModeSwitch mode={compareMode} onModeChange={handleCompareMode} disabled={running} />
           {composerBlock}

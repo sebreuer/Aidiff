@@ -622,7 +622,9 @@ body {
   display: flex;
   width: 100%;
   max-width: 672px;
-  margin: 0 auto 12px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 6;
   padding: 3px;
   border-radius: 14px;
   background: var(--glass-control-bg);
