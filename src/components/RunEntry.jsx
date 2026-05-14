@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { DIFF_ANALYSIS_MODEL } from "../constants/appConfig.js";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { parseDiffSections } from "../lib/diffParsing.js";
@@ -7,16 +8,34 @@ import { renderText } from "../lib/textMarkdown.jsx";
 import { DiffUnterschiedeAssessment, DiffUnterschiedeMiniTable } from "./DiffUnterschiedeBody.jsx";
 import { Dots } from "./Dots.jsx";
 import { PerfMetric } from "./PerfMetric.jsx";
-import { IconSquareDashedText } from "./tabIcons.jsx";
+import { border, modalBackdrop, zIndex } from "../theme/tokens.js";
 import { TabBar } from "./TabBar.jsx";
+
+function truncateLead(s, max = 56) {
+  const x = String(s || "").replace(/\s+/g, " ").trim();
+  if (x.length <= max) return x;
+  return `${x.slice(0, max - 1)}…`;
+}
 
 export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
   const { t, catalog } = useI18n();
   const [activeTab, setActiveTab] = useState("results");
+  const [fullPromptModal, setFullPromptModal] = useState(/** @type {string | null} */ (null));
   const diffReady = !!run.diff || run.diffLoading;
   const slots = run.slots || defaultCompareSlots();
   const activeIndices = getActiveSlotIndices(run);
   const perfReady = activeIndices.every((i) => run.metas[i]);
+  const isPromptCompare = run.compareKind === "prompts" && Array.isArray(run.promptVariants);
+
+  const miniColumnLabels = useMemo(() => {
+    if (!isPromptCompare || !run.promptVariants) return undefined;
+    const cnt = runActiveSlotCount(run);
+    return Array.from({ length: cnt }, (_, i) => truncateLead(run.promptVariants[i] || "", 48));
+  }, [isPromptCompare, run.promptVariants, run]);
+
+  const slot0 = slots[0];
+  const pv0 = slot0 ? getProvider(slot0.providerKey) : null;
+  const promptCompareLeadOk = Boolean(isPromptCompare && run.promptVariants?.length && slot0 && pv0);
 
   const diffColumnCount = runActiveSlotCount(run);
   const diffParsed = useMemo(() => {
@@ -36,6 +55,10 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
     const pv = getProvider(slot.providerKey);
     const cost = calcCost(slot.modelValue, meta.inputTokens, meta.outputTokens);
     const tps = meta.latencyMs > 0 ? meta.outputTokens / (meta.latencyMs / 1000) : 0;
+    const title =
+      isPromptCompare && typeof run.promptVariants?.[i] === "string"
+        ? truncateLead(run.promptVariants[i], 220)
+        : resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
     return {
       idx: i,
       dot: pv.dot,
@@ -45,7 +68,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
       cost,
       tps,
       ratio: meta.inputTokens > 0 ? meta.outputTokens / meta.inputTokens : 0,
-      title: resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions),
+      title,
     };
   });
   const valid = perfData.filter(Boolean);
@@ -55,47 +78,73 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
   const bestOutput = valid.length ? Math.max(...valid.map((d) => d.outputTokens)) : null;
   const canShowResultBadges = valid.length === activeIndices.length && valid.length > 0;
 
+  useEffect(() => {
+    if (fullPromptModal === null) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setFullPromptModal(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullPromptModal]);
+
   const shellClass =
     typeof onCollapse === "function"
       ? "aidiff-liquid-glass aidiff-liquid-glass--r16 aidiff-liquid-glass--clip"
       : "aidiff-liquid-glass aidiff-liquid-glass--clip";
 
   return (
-    <div className={shellClass} style={{ padding: 0, width: "100%" }}>
+    <>
+      <div className={shellClass} style={{ padding: 0, width: "100%" }}>
       <div
         className={
           typeof onCollapse === "function" ? "aidiff-run-card-head" : "aidiff-run-card-head aidiff-run-card-head--latest"
         }
       >
         <div className="aidiff-run-card-head__lead">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ color: "var(--t3)", flexShrink: 0 }}
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span
-            style={{
-              fontSize: 13,
-              fontStyle: "italic",
-              color: "var(--t2)",
-              lineHeight: 1.25,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              minWidth: 0,
-            }}
-          >
-            "{run.prompt}"
-          </span>
+          {promptCompareLeadOk ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flex: 1,
+                minWidth: 0,
+                fontSize: 13,
+                lineHeight: 1.25,
+                color: "var(--t2)",
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: pv0.dot, flexShrink: 0 }} aria-hidden />
+              <span
+                style={{
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                }}
+              >
+                {resolveModelLabel(slot0.providerKey, slot0.modelValue, modelOptions)}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--t3)", flexShrink: 0 }}>{pv0.sub}</span>
+            </div>
+          ) : (
+            <span
+              style={{
+                fontSize: 13,
+                fontStyle: "italic",
+                color: "var(--t2)",
+                lineHeight: 1.25,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              {`"${run.prompt}"`}
+            </span>
+          )}
         </div>
         <TabBar variant="inline" active={activeTab} onChange={setActiveTab} diffReady={diffReady} perfReady={perfReady} />
         {typeof onCollapse === "function" ? (
@@ -121,6 +170,10 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
           {activeIndices.map((i, j) => {
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
+            const headLabel =
+              isPromptCompare && typeof run.promptVariants?.[i] === "string"
+                ? truncateLead(run.promptVariants[i], 220)
+                : resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
             const d = perfData[j];
             const timeLabel = d ? `${(d.latencyMs / 1000).toFixed(2)}s` : "—";
             const costPer1kLabel = d?.cost != null ? `$${(d.cost * 1000).toFixed(2)}/1K` : "—";
@@ -175,33 +228,86 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                 }}
               >
                 <div
-                  className="aidiff-liquid-glass-head aidiff-run-entry-col-head"
+                  className="aidiff-liquid-glass-head aidiff-run-entry-col-head aidiff-run-col-head--split"
                   style={{
-                    padding: "9px 14px",
+                    padding: "9px 12px",
                     display: "flex",
                     alignItems: "center",
-                    gap: 7,
+                    gap: 0,
                     flexShrink: 0,
                     minWidth: 0,
                   }}
                 >
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, overflow: "hidden" }}>
-                    <span
+                  {isPromptCompare && typeof run.promptVariants?.[i] === "string" ? (
+                    <button
+                      type="button"
+                      className="aidiff-run-col-head__promptBtn"
+                      onClick={() => setFullPromptModal(run.promptVariants[i])}
+                      aria-haspopup="dialog"
+                      aria-label={t("run.openFullPrompt")}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontSize: 12,
+                          fontWeight: 400,
+                          color: "var(--t2)",
+                          textAlign: "left",
+                        }}
+                      >
+                        {headLabel}
+                      </span>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--t3)"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                        style={{ flexShrink: 0 }}
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <div
                       style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: "var(--t2)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        flex: 1,
                         minWidth: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 7,
                       }}
                     >
-                      {resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}
-                    </span>
-                    {showBadges && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, flexWrap: "nowrap" }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "var(--t2)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      >
+                        {headLabel}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--t3)", flexShrink: 0 }}>{pv.sub}</span>
+                    </div>
+                  )}
+                  {showBadges ? (
+                    <>
+                      <div className="aidiff-run-col-head__rule" role="separator" aria-orientation="vertical" />
+                      <div className="aidiff-run-col-head__badges">
                         <span
                           style={{ ...badgeBase, ...speedBadgeHighlight }}
                           title={isFastest ? t("run.fastestLatencyTitle", { time: timeLabel }) : t("run.latencyTitle", { time: timeLabel })}
@@ -225,9 +331,8 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                           <span>{costPer1kLabel}</span>
                         </span>
                       </div>
-                    )}
-                  </div>
-                  <span style={{ fontSize: 10, color: "var(--t3)", flexShrink: 0 }}>{pv.sub}</span>
+                    </>
+                  ) : null}
                 </div>
                 <div style={{ padding: "12px 14px", fontSize: 13, lineHeight: 1.75, color: "var(--text)" }}>
                   {run.loading[i] ? (
@@ -297,6 +402,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                 modelOptions={modelOptions}
                 columnCount={diffColumnCount}
                 rowOrder={diffParsed.rowOrder}
+                columnLabels={miniColumnLabels}
               />
             </div>
           ) : null}
@@ -309,16 +415,77 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             const d = perfData[j];
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
+            const perfHead =
+              d?.title ?? resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
             return (
               <div
                 key={i}
                 className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip aidiff-liquid-glass--no-glass-hover"
                 style={{ flex: 1, minWidth: 0 }}
               >
-                <div className="aidiff-liquid-glass-head aidiff-run-entry-col-head" style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 7 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, fontWeight: 500, color: "var(--t2)" }}>{resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}</span>
-                  <span style={{ fontSize: 10, color: "var(--t3)", marginLeft: "auto" }}>{pv.sub}</span>
+                <div
+                  className="aidiff-liquid-glass-head aidiff-run-entry-col-head"
+                  style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}
+                >
+                  {isPromptCompare && typeof run.promptVariants?.[i] === "string" ? (
+                    <button
+                      type="button"
+                      className="aidiff-run-col-head__promptBtn"
+                      style={{ flex: 1, width: "100%", minWidth: 0 }}
+                      onClick={() => setFullPromptModal(run.promptVariants[i])}
+                      aria-haspopup="dialog"
+                      aria-label={t("run.openFullPrompt")}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontSize: 12,
+                          fontWeight: 400,
+                          color: "var(--t2)",
+                          textAlign: "left",
+                        }}
+                      >
+                        {perfHead}
+                      </span>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--t3)"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                        style={{ flexShrink: 0 }}
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "var(--t2)",
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {perfHead}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--t3)", flexShrink: 0, marginLeft: "auto" }}>{pv.sub}</span>
+                    </>
+                  )}
                 </div>
                 <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
                   {d ? (
@@ -345,5 +512,86 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
       )}
       </div>
     </div>
+    {fullPromptModal !== null
+      ? createPortal(
+          <div
+            role="presentation"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: zIndex.dropdown,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+              background: modalBackdrop(),
+            }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setFullPromptModal(null);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="aidiff-full-prompt-title"
+              className="aidiff-liquid-glass aidiff-liquid-glass--r16"
+              style={{
+                maxWidth: 480,
+                width: "100%",
+                maxHeight: "min(72vh, 560px)",
+                display: "flex",
+                flexDirection: "column",
+                padding: 0,
+                overflow: "hidden",
+                boxShadow: "0 20px 48px rgba(0,0,0,0.35)",
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderBottom: border.line,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexShrink: 0,
+                }}
+              >
+                <span id="aidiff-full-prompt-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+                  {t("run.fullPromptTitle")}
+                </span>
+                <button
+                  type="button"
+                  className="aidiff-glass-control aidiff-glass-control--icon"
+                  aria-label={t("run.fullPromptClose")}
+                  style={{ margin: -4, flexShrink: 0 }}
+                  onClick={() => setFullPromptModal(null)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <div
+                style={{
+                  padding: 16,
+                  overflow: "auto",
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  color: "var(--text)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {fullPromptModal}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null}
+  </>
   );
 }

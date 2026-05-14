@@ -3,7 +3,7 @@ import { getProvider, resolveModelLabel, shortenModelHeadline } from "../lib/mod
 import { border } from "../theme/tokens.js";
 import { useI18n } from "../i18n/I18nContext.jsx";
 
-export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount = 3, rowOrder }) {
+export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount = 3, rowOrder, columnLabels }) {
   const { t } = useI18n();
   const innerLine = border.line;
   const colIdx = Array.from({ length: columnCount }, (_, i) => i);
@@ -47,7 +47,10 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount =
             {colIdx.map((i) => {
               const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
               const pv = getProvider(slot.providerKey);
-              const lab = resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
+              const lab =
+                Array.isArray(columnLabels) && columnLabels[i]
+                  ? String(columnLabels[i])
+                  : resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
               return (
                 <th
                   key={i}

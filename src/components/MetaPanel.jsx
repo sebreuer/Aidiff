@@ -6,6 +6,12 @@ import { renderText } from "../lib/textMarkdown.jsx";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { Dots } from "./Dots.jsx";
 
+function truncateMeta(s, max = 160) {
+  const x = String(s ?? "").replace(/\s+/g, " ").trim();
+  if (x.length <= max) return x;
+  return `${x.slice(0, max - 1)}…`;
+}
+
 export function MetaPanel({ runs, onClose, modelOptions }) {
   const { t, locale } = useI18n();
   const [text, setText] = useState("");
@@ -16,14 +22,24 @@ export function MetaPanel({ runs, onClose, modelOptions }) {
       .map((r, i) => {
         const slots = r.slots || defaultCompareSlots();
         const idx = getActiveSlotIndices(r);
+        const isPromptRun = r.compareKind === "prompts" && Array.isArray(r.promptVariants);
+        const head =
+          isPromptRun && slots[0]
+            ? t("meta.runHeaderPromptCompare", {
+                n: i + 1,
+                model: resolveModelLabel(slots[0].providerKey, slots[0].modelValue, modelOptions),
+              })
+            : t("meta.runHeader", { n: i + 1, prompt: r.prompt });
         const answers = idx
           .map((j) => {
             const sl = slots[j];
-            const label = resolveModelLabel(sl.providerKey, sl.modelValue, modelOptions);
+            const label = isPromptRun
+              ? `${t("meta.answerLabelPromptColumn", { n: j + 1 })} (${truncateMeta(r.promptVariants[j], 200)})`
+              : resolveModelLabel(sl.providerKey, sl.modelValue, modelOptions);
             return `${label}:\n${r.results[j] || t("meta.noAnswer")}`;
           })
           .join("\n\n");
-        return `${t("meta.runHeader", { n: i + 1, prompt: r.prompt })}\n${answers}`;
+        return `${head}\n${answers}`;
       })
       .join("\n\n");
     const perfParts = [];

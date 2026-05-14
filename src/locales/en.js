@@ -12,11 +12,23 @@ export default {
     emptyState: {
       title: "What should we compare?",
     },
+    compareMode: {
+      ariaLabel: "Comparison type",
+      models: "Compare Models",
+      prompts: "Compare Prompts",
+    },
     composer: {
       placeholder: "Compare two or three models…",
+      promptPlaceholder: "Write a prompt variant…",
+      promptColumnLabel: "Prompt {n}",
+      addThirdPromptAria: "Add third prompt",
+      addThirdPromptTitle: "Third prompt",
+      removeThirdPromptAria: "Remove third prompt",
+      removeThirdPromptTitle: "Remove third prompt",
       attachFile: "Attach file",
       send: "Send",
       metaAnalysisRuns: "Meta analysis ({count} runs)",
+      metaAnalysisWip: "Work in progress",
       fileBlock: "[File: {name}]",
     },
     theme: {
@@ -50,6 +62,8 @@ export default {
       error: "Something went wrong.",
       noAnswer: "(no answer)",
       runHeader: '--- Run {n}: "{prompt}" ---',
+      runHeaderPromptCompare: '--- Run {n}: same model ({model}), multiple prompts ---',
+      answerLabelPromptColumn: "Prompt {n}",
       perfSection: "Performance:",
       perfColumn: "Column {n} (runs with this column only): avg {latencySec}s, avg ${avgCost}/request",
     },
@@ -61,10 +75,14 @@ export default {
         "No mini-comparison rows from the model yet — placeholders. The next run will show real values once the response format matches.",
       user: {
         promptLine: 'Prompt: "{prompt}"',
+        sameModelMultiplePrompts: 'Same model ({model}), different prompts:',
+        promptVariantBlock: "Prompt {n}:\n{text}",
         answerHeader: "{label} (Answer {n}):",
       },
     },
     run: {
+      promptCompareRailOne: "1 prompt",
+      promptCompareRailCount: "{count} prompts",
       collapseRun: "Collapse run",
       diffAnalysisFailed: "Difference analysis failed ({model}): {message}",
       fastestLatencyTitle: "Fastest latency ({time})",
@@ -75,6 +93,9 @@ export default {
       costTitle: "Cost {cost}",
       cheapestCostAria: "Lowest cost: {cost}",
       costPer1kAria: "Cost per 1K tokens: {cost}",
+      openFullPrompt: "Show full prompt",
+      fullPromptTitle: "Full prompt",
+      fullPromptClose: "Close",
     },
     perf: {
       costPerRequest: "Cost / request",

@@ -42,6 +42,44 @@ export function IconTabPerformance(props) {
   );
 }
 
+/** Lucide `message-square-code` — Run-Kopfzeile, Compare-Prompts-Tab. */
+export function IconMessageBubble(props) {
+  const { size = 13, ...rest } = props;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...rest}>
+      <path
+        d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"
+        {...stroke}
+      />
+      <path d="m10 8-3 3 3 3" {...stroke} />
+      <path d="m14 14 3-3-3-3" {...stroke} />
+    </svg>
+  );
+}
+
+/** Lucide `cpu` (Hardware / Modell). */
+export function IconCpu(props) {
+  const { size = 13, ...rest } = props;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...rest}>
+      <path d="M12 20v2" {...stroke} />
+      <path d="M12 2v2" {...stroke} />
+      <path d="M17 20v2" {...stroke} />
+      <path d="M17 2v2" {...stroke} />
+      <path d="M2 12h2" {...stroke} />
+      <path d="M2 17h2" {...stroke} />
+      <path d="M2 7h2" {...stroke} />
+      <path d="M20 12h2" {...stroke} />
+      <path d="M20 17h2" {...stroke} />
+      <path d="M20 7h2" {...stroke} />
+      <path d="M7 20v2" {...stroke} />
+      <path d="M7 2v2" {...stroke} />
+      <rect x="4" y="4" width="16" height="16" rx="2" {...stroke} />
+      <rect x="8" y="8" width="8" height="8" rx="1" {...stroke} />
+    </svg>
+  );
+}
+
 /** Lucide `square-dashed-text` (official paths). */
 export function IconSquareDashedText(props) {
   const { size = 13, ...rest } = props;

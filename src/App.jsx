@@ -2,8 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { DIFF_ANALYSIS_MODEL, SETTINGS_PROVIDER_ORDER } from "./constants/appConfig.js";
 import { AnimatedBrandLogo } from "./components/AnimatedBrandLogo.jsx";
 import { CollapsedRun } from "./components/CollapsedRun.jsx";
+import { CompareModeSwitch } from "./components/CompareModeSwitch.jsx";
 import { Dots } from "./components/Dots.jsx";
 import { ComposerModelSlots } from "./components/ComposerModelSlots.jsx";
+import { ComposerPromptCompare } from "./components/ComposerPromptCompare.jsx";
 import { ComposerStyleIconButton } from "./components/ComposerStyleIconButton.jsx";
 import { FileChip } from "./components/FileChip.jsx";
 import { HeaderWordmark } from "./components/HeaderWordmark.jsx";
@@ -24,6 +26,9 @@ import { useI18n } from "./i18n/I18nContext.jsx";
 import { defaultCompareSlotsTwo, defaultModelOptions, getActiveSlotIndices, getProvider, migrateCompareSlotsForApiKeys, resolveModelLabel } from "./lib/modelUtils.js";
 
 const COLOR_SCHEME_STORAGE_KEY = "aidiff-color-scheme";
+
+/** Meta-Analyse: UI vorerst aus, bis Feature fertig ist. */
+const META_ANALYSIS_ENABLED = false;
 
 function readStoredColorSchemeIsDark() {
   if (typeof window === "undefined") return false;
@@ -139,6 +144,10 @@ export default function App() {
   const [fileContent, setFileContent] = useState(null);
   const [isDark, setIsDark] = useState(() => readStoredColorSchemeIsDark());
   const [compareSlots, setCompareSlots] = useState(() => defaultCompareSlotsTwo());
+  const [compareMode, setCompareMode] = useState(/** @type {"models" | "prompts"} */ ("models"));
+  const [promptSlot, setPromptSlot] = useState(() => ({ ...defaultCompareSlotsTwo()[0] }));
+  const [promptDrafts, setPromptDrafts] = useState(() => ["", ""]);
+  const promptTextareaRefs = useRef([]);
   const [modelOptions, setModelOptions] = useState(() => defaultModelOptions());
   const [modelListsLoaded, setModelListsLoaded] = useState(false);
   const [catalogUpdatedAt, setCatalogUpdatedAt] = useState(null);
@@ -390,6 +399,38 @@ export default function App() {
     setCompareSlots((prev) => migrateCompareSlotsForApiKeys(prev, apiKeysCommitted, modelOptions));
   }, [modelListsLoaded, apiKeysCommitted, modelOptions]);
 
+  useEffect(() => {
+    if (!modelListsLoaded) return;
+    setPromptSlot((prev) => {
+      const opts = modelOptions[prev.providerKey];
+      if (!opts?.length) return prev;
+      if (opts.some((o) => o.value === prev.modelValue)) return prev;
+      return { ...prev, modelValue: opts[0].value };
+    });
+  }, [modelListsLoaded, modelOptions]);
+
+  useEffect(() => {
+    if (!modelListsLoaded) return;
+    setPromptSlot((prev) => migrateCompareSlotsForApiKeys([prev], apiKeysCommitted, modelOptions)[0]);
+  }, [modelListsLoaded, apiKeysCommitted, modelOptions]);
+
+  const handleCompareMode = useCallback(
+    (next) => {
+      if (next === compareMode || running) return;
+      if (next === "prompts") {
+        const first = compareSlots[0];
+        if (first) setPromptSlot({ ...first });
+      } else {
+        setCompareSlots((prev) => {
+          const rest = prev.slice(1);
+          return [{ ...promptSlot }, ...rest].slice(0, Math.max(2, prev.length));
+        });
+      }
+      setCompareMode(next);
+    },
+    [compareMode, running, compareSlots, promptSlot]
+  );
+
   const adjustHeight = useCallback(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -405,27 +446,53 @@ export default function App() {
     reader.readAsText(f);
   }, []);
 
-  const canSend = (prompt.trim().length > 0 || !!file) && !running;
+  const trimmedPromptVariants = useMemo(() => promptDrafts.map((s) => String(s).trim()).filter(Boolean), [promptDrafts]);
+  const canSend =
+    !running &&
+    (compareMode === "models" ? prompt.trim().length > 0 || !!file : trimmedPromptVariants.length >= 2);
 
   const doRun = useCallback(async () => {
     if (!canSend) return;
-    const p = prompt.trim();
-    const fullPrompt = p + (fileContent ? `\n\n${t("composer.fileBlock", { name: file?.name || "" })}\n${fileContent}` : "");
-    setPrompt("");
+    const isModels = compareMode === "models";
+    const fileAppend = fileContent ? `\n\n${t("composer.fileBlock", { name: file?.name || "" })}\n${fileContent}` : "";
+
+    let p = "";
+    /** @type {string[]} */
+    let variants = [];
+    let snapshot;
+
+    if (isModels) {
+      p = prompt.trim();
+      snapshot = compareSlots.map((s) => ({ ...s }));
+    } else {
+      variants = promptDrafts.map((s) => s.trim()).filter(Boolean);
+      if (variants.length < 2) return;
+      const cell = { ...promptSlot };
+      snapshot = variants.map(() => ({ ...cell }));
+    }
+
+    if (isModels) {
+      setPrompt("");
+    } else {
+      setPromptDrafts(["", ""]);
+    }
     setFile(null);
     setFileContent(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    promptTextareaRefs.current.forEach((ta) => {
+      if (ta) ta.style.height = "auto";
+    });
     setRunning(true);
     setShowMeta(false);
 
     const runId = Date.now();
-    const snapshot = compareSlots.map((s) => ({ ...s }));
     const n = snapshot.length;
     const activeIndices = Array.from({ length: n }, (_, i) => i);
     const usedThird = n === 3;
     const newRun = {
       id: runId,
-      prompt: p,
+      ...(isModels ? {} : { compareKind: "prompts", promptVariants: variants }),
+      prompt: isModels ? p : variants[0] || "",
       slots: snapshot,
       usedThirdSlot: usedThird,
       results: {},
@@ -448,9 +515,10 @@ export default function App() {
         const pr = getProvider(slot.providerKey);
         const label = resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
         const systemPrompt = pr.system(label);
-        if (slot.providerKey === "gpt") return callOpenAIAPI(systemPrompt, fullPrompt, slot.modelValue);
-        if (slot.providerKey === "claude") return callAnthropicAPI(systemPrompt, fullPrompt, slot.modelValue);
-        return callGoogleAPI(systemPrompt, fullPrompt, slot.modelValue);
+        const userBody = (isModels ? p : variants[i]) + fileAppend;
+        if (slot.providerKey === "gpt") return callOpenAIAPI(systemPrompt, userBody, slot.modelValue);
+        if (slot.providerKey === "claude") return callAnthropicAPI(systemPrompt, userBody, slot.modelValue);
+        return callGoogleAPI(systemPrompt, userBody, slot.modelValue);
       })
     );
 
@@ -488,11 +556,27 @@ export default function App() {
       setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diffLoading: true } : r)));
       try {
         const slotCount = activeIndices.length;
-        const header = t("diff.user.promptLine", { prompt: p });
-        const blocks = activeIndices.map((i, k) => {
-          const label = resolveModelLabel(snapshot[i].providerKey, snapshot[i].modelValue, modelOptions);
-          return `${t("diff.user.answerHeader", { label, n: k + 1 })}\n${nr[i]}`;
-        });
+        let header;
+        let blocks;
+        if (isModels) {
+          header = t("diff.user.promptLine", { prompt: p });
+          blocks = activeIndices.map((i, k) => {
+            const label = resolveModelLabel(snapshot[i].providerKey, snapshot[i].modelValue, modelOptions);
+            return `${t("diff.user.answerHeader", { label, n: k + 1 })}\n${nr[i]}`;
+          });
+        } else {
+          const modelLabel = resolveModelLabel(snapshot[0].providerKey, snapshot[0].modelValue, modelOptions);
+          header = `${t("diff.user.sameModelMultiplePrompts", { model: modelLabel })}\n\n${variants
+            .map((text, k) => t("diff.user.promptVariantBlock", { n: k + 1, text }))
+            .join("\n\n")}`;
+          blocks = activeIndices.map((i, k) => {
+            const raw = variants[k] || "";
+            const shortP = raw.replace(/\s+/g, " ").trim();
+            const clipped = shortP.length > 56 ? `${shortP.slice(0, 55)}…` : shortP;
+            const label = `${t("composer.promptColumnLabel", { n: k + 1 })} — ${clipped}`;
+            return `${t("diff.user.answerHeader", { label, n: k + 1 })}\n${nr[i]}`;
+          });
+        }
         const dp = `${header}\n\n${blocks.join("\n\n")}`;
         const { text } = await callGoogleAPI(buildDiffSystem(slotCount, locale), dp, DIFF_ANALYSIS_MODEL, { maxOutputTokens: 4096 });
         setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diff: text, diffLoading: false } : r)));
@@ -503,7 +587,21 @@ export default function App() {
         );
       }
     }
-  }, [canSend, prompt, file, fileContent, compareSlots, modelOptions, catalogUpdatedAt, locale, t]);
+  }, [
+    canSend,
+    compareMode,
+    prompt,
+    promptDrafts,
+    promptSlot,
+    file,
+    fileContent,
+    compareSlots,
+    modelOptions,
+    catalogUpdatedAt,
+    locale,
+    t,
+    trimmedPromptVariants,
+  ]);
 
   const completedRuns = runs.filter((r) => getActiveSlotIndices(r).every((i) => r.results[i] || r.errors[i]));
   const providerSettingRows = useMemo(() => SETTINGS_PROVIDER_ORDER.map((key) => getProvider(key)), []);
@@ -547,15 +645,43 @@ export default function App() {
   );
 
   const composerBlock = (
-    <div className="aidiff-liquid-glass aidiff-liquid-glass--composer-root" style={{ cursor: "text" }} onClick={() => textareaRef.current?.focus()}>
+    <div
+      className="aidiff-liquid-glass aidiff-liquid-glass--composer-root"
+      style={{ cursor: "text" }}
+      onClick={(e) => {
+        if (e.target.closest("textarea")) return;
+        if (compareMode === "models") textareaRef.current?.focus();
+        else promptTextareaRefs.current[0]?.focus();
+      }}
+    >
       <div className="aidiff-composer-slots-strip">
-        <ComposerModelSlots
-          compareSlots={compareSlots}
-          setCompareSlots={setCompareSlots}
-          modelOptions={modelOptions}
-          listsLoading={!modelListsLoaded || catalogRefreshing}
-          apiKeysCommitted={apiKeysForPicker}
-        />
+        {compareMode === "models" ? (
+          <ComposerModelSlots
+            compareSlots={compareSlots}
+            setCompareSlots={setCompareSlots}
+            modelOptions={modelOptions}
+            listsLoading={!modelListsLoaded || catalogRefreshing}
+            apiKeysCommitted={apiKeysForPicker}
+          />
+        ) : (
+          <ComposerPromptCompare
+            promptSlot={promptSlot}
+            setPromptSlot={setPromptSlot}
+            promptDrafts={promptDrafts}
+            setPromptDrafts={setPromptDrafts}
+            modelOptions={modelOptions}
+            listsLoading={!modelListsLoaded || catalogRefreshing}
+            apiKeysCommitted={apiKeysForPicker}
+            textareaRefs={promptTextareaRefs}
+            running={running}
+            onPromptKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                doRun();
+              }
+            }}
+          />
+        )}
       </div>
       {file && (
         <div style={{ padding: "10px 16px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -568,7 +694,8 @@ export default function App() {
           />
         </div>
       )}
-      <textarea
+      {compareMode === "models" ? (
+        <textarea
           ref={textareaRef}
           value={prompt}
           placeholder={t("composer.placeholder")}
@@ -601,6 +728,7 @@ export default function App() {
             cursor: "text",
           }}
         />
+      ) : null}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px 8px 6px" }}>
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             <ComposerStyleIconButton ariaLabel={t("composer.attachFile")} onClick={() => fileInputRef.current?.click()}>
@@ -613,11 +741,12 @@ export default function App() {
               <button
                 type="button"
                 className="aidiff-glass-pill"
-                data-on={showMeta ? "true" : undefined}
+                aria-disabled="true"
+                title={t("composer.metaAnalysisWip")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowMeta((v) => !v);
                 }}
+                style={{ opacity: 0.52, cursor: "not-allowed" }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
@@ -718,7 +847,7 @@ export default function App() {
             </div>
           </div>
         </header>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
           <div
             style={{
               fontSize: "clamp(22px, 3.8vw, 30px)",
@@ -733,7 +862,10 @@ export default function App() {
           >
             {t("emptyState.title")}
           </div>
-          <div style={{ width: "100%", maxWidth: 672 }}>{composerBlock}</div>
+          <div style={{ width: "100%", maxWidth: 672 }}>
+            <CompareModeSwitch mode={compareMode} onModeChange={handleCompareMode} disabled={running} />
+            {composerBlock}
+          </div>
         </div>
         {settingsModal}
       </div>
@@ -789,7 +921,7 @@ export default function App() {
                 }
               />
             ) : (
-              <CollapsedRun run={r} onExpand={() => setExpandedRuns((prev) => new Set([...prev, r.id]))} />
+              <CollapsedRun run={r} modelOptions={modelOptions} onExpand={() => setExpandedRuns((prev) => new Set([...prev, r.id]))} />
             )}
           </div>
         ))}
@@ -808,7 +940,7 @@ export default function App() {
         <div ref={bottomRef} />
       </div>
 
-      {showMeta && completedRuns.length >= 2 && (
+      {META_ANALYSIS_ENABLED && showMeta && completedRuns.length >= 2 && (
         <div className="aidiff-meta-above-composer">
           <MetaPanel runs={completedRuns} onClose={() => setShowMeta(false)} modelOptions={modelOptions} />
         </div>
@@ -816,6 +948,7 @@ export default function App() {
 
       <div className="composer-wrap">
         <div className="composer-inner" style={{ maxWidth: 672, margin: "0 auto" }}>
+          <CompareModeSwitch mode={compareMode} onModeChange={handleCompareMode} disabled={running} />
           {composerBlock}
         </div>
       </div>

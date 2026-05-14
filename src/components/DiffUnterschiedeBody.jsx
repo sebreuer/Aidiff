@@ -17,6 +17,15 @@ export function DiffUnterschiedeAssessment({ assessment }) {
 }
 
 /** Mini-Vergleichstabelle (eigene Glass-Card im Child). */
-export function DiffUnterschiedeMiniTable({ miniRows, slots, modelOptions, columnCount, rowOrder }) {
-  return <DiffMiniVergleichCard rows={miniRows} slots={slots} modelOptions={modelOptions} columnCount={columnCount} rowOrder={rowOrder} />;
+export function DiffUnterschiedeMiniTable({ miniRows, slots, modelOptions, columnCount, rowOrder, columnLabels }) {
+  return (
+    <DiffMiniVergleichCard
+      rows={miniRows}
+      slots={slots}
+      modelOptions={modelOptions}
+      columnCount={columnCount}
+      rowOrder={rowOrder}
+      columnLabels={columnLabels}
+    />
+  );
 }
