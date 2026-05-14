@@ -1,6 +1,6 @@
 const MAX_MID_DOTS = 5;
 
-/** Kurze Schlüssel komplett maskieren; mittlere Länge 4+•+4; längere: 8 Zeichen + wenige • + 8 Zeichen (max. 5 Punkte in der Mitte). */
+/** Short keys fully masked; medium length 4+•+4; longer: 8 chars + few • + 8 chars (max 5 dots in the middle). */
 export function formatApiKeyPeek(secret) {
   const s = String(secret ?? "");
   const L = s.length;

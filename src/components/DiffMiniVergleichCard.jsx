@@ -1,11 +1,10 @@
-import { useState } from "react";
-import { emptyMiniDisplayRows, stripMiniMarkdownCell } from "../lib/diffParsing.js";
+import { emptyMiniDisplayRows, miniCellDisplayText, stripMiniMarkdownCell } from "../lib/diffParsing.js";
 import { getProvider, resolveModelLabel, shortenModelHeadline } from "../lib/modelUtils.js";
-import { SHADOWS, border } from "../theme/tokens.js";
+import { border } from "../theme/tokens.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
 
-export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, columnCount = 3 }) {
-  const [hovered, setHovered] = useState(false);
-  const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
+export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount = 3, rowOrder }) {
+  const { t } = useI18n();
   const innerLine = border.line;
   const colIdx = Array.from({ length: columnCount }, (_, i) => i);
   const cell = {
@@ -14,26 +13,18 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
     fontSize: 11,
     lineHeight: 1.45,
   };
-  const labelCell = { ...cell, whiteSpace: "nowrap" };
-  const displayRows = rows.length > 0 ? rows : emptyMiniDisplayRows(columnCount);
+  const labelCell = { ...cell, whiteSpace: "normal" };
+  const displayRows = rows.length > 0 ? rows : emptyMiniDisplayRows(columnCount, rowOrder);
   const allPlaceholders = displayRows.every((r) => r.vals.every((v) => v === "—"));
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="aidiff-liquid-glass aidiff-liquid-glass--r12 aidiff-liquid-glass--clip"
       style={{
-        flex: "0 1 auto",
-        alignSelf: "flex-start",
-        width: "max-content",
+        width: "100%",
         maxWidth: "100%",
         minWidth: 0,
-        borderRadius: 12,
-        border: border.transparent,
-        background: "var(--bg)",
         overflow: "auto",
-        boxShadow: hovered ? shadows.hover : shadows.default,
-        transition: "box-shadow 0.15s ease",
       }}
     >
       <table
@@ -46,7 +37,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
         }}
       >
         <thead>
-          <tr style={{ background: "var(--bg2)" }}>
+          <tr style={{ background: "var(--glass-inner-header-bg)" }}>
             <th scope="col" style={{ ...labelCell, fontWeight: 600, color: "var(--t3)", textAlign: "left", borderRight: innerLine, borderBottom: innerLine }} />
             {colIdx.map((i) => {
               const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
@@ -63,13 +54,27 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
                     color: "var(--text)",
                     borderBottom: innerLine,
                     borderRight: i < columnCount - 1 ? innerLine : "none",
+                    verticalAlign: "top",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: pv.dot }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
+                    <span
+                      title={lab}
+                      className={`aidiff-assessment-mark aidiff-assessment-mark--s${i + 1}`}
+                      style={{
+                        display: "inline-block",
+                        maxWidth: "100%",
+                        textAlign: "center",
+                        fontWeight: 600,
+                        color: "var(--text)",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {shortenModelHeadline(lab, 42)}
+                    </span>
+                    <span style={{ fontSize: 9, color: "var(--t3)", fontWeight: 400, lineHeight: 1.2 }}>{pv.sub}</span>
                   </div>
-                  <div title={lab}>{shortenModelHeadline(lab, 42)}</div>
-                  <div style={{ fontSize: 9, color: "var(--t3)", marginTop: 4, fontWeight: 400 }}>{pv.sub}</div>
                 </th>
               );
             })}
@@ -85,16 +90,17 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
                   textAlign: "left",
                   fontWeight: 600,
                   color: "var(--t2)",
-                  background: "var(--bg2)",
+                  background: "var(--glass-inner-header-bg)",
                   borderRight: innerLine,
                   borderBottom: rowIndex < displayRows.length - 1 ? innerLine : "none",
                 }}
               >
-                {row.label}
+                {stripMiniMarkdownCell(row.label)}
               </th>
               {row.vals.map((v, vi) => (
                 <td
                   key={vi}
+                  title={stripMiniMarkdownCell(String(v ?? ""))}
                   style={{
                     ...cell,
                     textAlign: "center",
@@ -105,7 +111,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
                     borderBottom: rowIndex < displayRows.length - 1 ? innerLine : "none",
                   }}
                 >
-                  {stripMiniMarkdownCell(v)}
+                  {miniCellDisplayText(v, 3)}
                 </td>
               ))}
             </tr>
@@ -113,8 +119,8 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, isDark, colum
         </tbody>
       </table>
       {allPlaceholders && (
-        <div style={{ padding: "8px 12px 10px", fontSize: 10, color: "var(--t3)", lineHeight: 1.4, borderTop: innerLine, background: "var(--bg2)" }}>
-          Noch keine Minivergleich-Zeilen vom Modell — Platzhalter. Nächster Lauf liefert echte Werte, sobald das Antwortformat passt.
+        <div style={{ padding: "8px 12px 10px", fontSize: 10, color: "var(--t3)", lineHeight: 1.4, borderTop: innerLine, background: "var(--glass-inner-header-bg)" }}>
+          {t("diff.miniComparisonPlaceholder")}
         </div>
       )}
     </div>

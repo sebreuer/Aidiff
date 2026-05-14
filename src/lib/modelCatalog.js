@@ -45,7 +45,7 @@ export function isCatalogFresh(fetchedAt) {
   return Date.now() - fetchedAt < MODEL_CATALOG_MAX_AGE_MS;
 }
 
-/** Pro gespeichertem Katalog-`fetchedAt` höchstens einmaliger Netzwerk-Refresh bei Modell-/Listen-Fehler (keine Loop). */
+/** At most one network refresh per stored catalog `fetchedAt` on model/list errors (no loop). */
 export const CATALOG_STALE_RETRY_STORAGE_KEY = "aidiff_catalog_stale_retry_once_v1";
 
 export function catalogStaleRetryStorageKey(fetchedAt) {
@@ -77,11 +77,11 @@ export function markStaleCatalogRetried(fetchedAt) {
   }
 }
 
-/** True, wenn ein frischer Modellkatalog das Problem plausibel beheben könnte (nicht Quota/Auth). */
+/** True if a fresh model catalog could plausibly fix the issue (not quota/auth). */
 export function errorSuggestsStaleModelCatalog(message) {
   if (!message || typeof message !== "string") return false;
   const m = message;
-  if (/Modell nicht in der geladenen Liste/.test(m)) return true;
+  if (/Modell nicht in der geladenen Liste|not in the loaded model list/i.test(m)) return true;
   if (/HTTP 429\b/i.test(m)) return false;
   if (/HTTP 401\b/i.test(m)) return false;
   if (/credit balance is too low/i.test(m)) return false;
@@ -108,7 +108,7 @@ export function isOpenAIChatLikeModelId(id) {
   return id.startsWith("gpt-") || /^o\d/.test(id) || id.startsWith("chatgpt-") || id.startsWith("ft:");
 }
 
-/** Einmal beim App-Start: Modelllisten von den APIs holen und als Dropdown-Optionen speichern. */
+/** Once at app start: fetch model lists from APIs and store as dropdown options. */
 export async function fetchAvailableModelOptions() {
   const fallback = defaultModelOptions();
 
@@ -158,7 +158,7 @@ export async function fetchAvailableModelOptions() {
   return { options, fromApi };
 }
 
-/** Netzwerk + Speichern in localStorage (immer neue `fetchedAt`). */
+/** Network + persist to localStorage (always new `fetchedAt`). */
 export async function fetchPersistModelCatalog() {
   const { options, fromApi } = await fetchAvailableModelOptions();
   const fetchedAt = Date.now();

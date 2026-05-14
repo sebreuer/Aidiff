@@ -1,21 +1,33 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DIFF_ANALYSIS_MODEL } from "../constants/appConfig.js";
-import { calcCost, defaultCompareSlots, getActiveSlotIndices, getProvider, resolveModelLabel } from "../lib/modelUtils.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
+import { parseDiffSections } from "../lib/diffParsing.js";
+import { calcCost, defaultCompareSlots, getActiveSlotIndices, getProvider, resolveModelLabel, runActiveSlotCount } from "../lib/modelUtils.js";
 import { renderText } from "../lib/textMarkdown.jsx";
-import { SHADOWS } from "../theme/tokens.js";
-import { ComposerStyleIconButton } from "./ComposerStyleIconButton.jsx";
-import { DiffUnterschiedeBody } from "./DiffUnterschiedeBody.jsx";
+import { DiffUnterschiedeAssessment, DiffUnterschiedeMiniTable } from "./DiffUnterschiedeBody.jsx";
 import { Dots } from "./Dots.jsx";
 import { PerfMetric } from "./PerfMetric.jsx";
+import { IconSquareDashedText } from "./tabIcons.jsx";
 import { TabBar } from "./TabBar.jsx";
 
 export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
+  const { t, catalog } = useI18n();
   const [activeTab, setActiveTab] = useState("results");
-  const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
   const diffReady = !!run.diff || run.diffLoading;
   const slots = run.slots || defaultCompareSlots();
   const activeIndices = getActiveSlotIndices(run);
   const perfReady = activeIndices.every((i) => run.metas[i]);
+
+  const diffColumnCount = runActiveSlotCount(run);
+  const diffParsed = useMemo(() => {
+    if (!run.diff) return null;
+    const { assessment, miniRows } = parseDiffSections(run.diff, diffColumnCount, catalog.diffParsing);
+    return {
+      assessment,
+      miniRows,
+      rowOrder: catalog.diffParsing.rowOrder,
+    };
+  }, [run.diff, diffColumnCount, catalog.diffParsing]);
 
   const perfData = activeIndices.map((i) => {
     const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
@@ -43,47 +55,65 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
   const bestOutput = valid.length ? Math.max(...valid.map((d) => d.outputTokens)) : null;
   const canShowResultBadges = valid.length === activeIndices.length && valid.length > 0;
 
+  const shellClass =
+    typeof onCollapse === "function"
+      ? "aidiff-liquid-glass aidiff-liquid-glass--r16 aidiff-liquid-glass--clip"
+      : "aidiff-liquid-glass aidiff-liquid-glass--clip";
+
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 20, boxShadow: shadows.default, border: "1px solid transparent", overflow: "hidden", padding: "16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, minWidth: 0 }}>
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ color: "var(--t3)", flexShrink: 0 }}
-        >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        <span
-          style={{
-            fontSize: 13,
-            fontStyle: "italic",
-            color: "var(--t2)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          "{run.prompt}"
-        </span>
+    <div className={shellClass} style={{ padding: 0, width: "100%" }}>
+      <div className="aidiff-run-card-head">
+        <div className="aidiff-run-card-head__lead">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ color: "var(--t3)", flexShrink: 0 }}
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span
+            style={{
+              fontSize: 13,
+              fontStyle: "italic",
+              color: "var(--t2)",
+              lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            "{run.prompt}"
+          </span>
+        </div>
+        <TabBar variant="inline" active={activeTab} onChange={setActiveTab} diffReady={diffReady} perfReady={perfReady} />
         {typeof onCollapse === "function" ? (
-          <ComposerStyleIconButton ariaLabel="Run einklappen" onClick={onCollapse}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <button
+            type="button"
+            className="aidiff-run-card-head__chevronBtn"
+            aria-label={t("run.collapseRun")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCollapse();
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <polyline points="6 15 12 9 18 15" />
             </svg>
-          </ComposerStyleIconButton>
-        ) : null}
+          </button>
+        ) : (
+          <div className="aidiff-run-card-head__chevronSlot" aria-hidden />
+        )}
       </div>
 
-      <TabBar active={activeTab} onChange={setActiveTab} diffReady={diffReady} perfReady={perfReady} />
-
+      <div style={{ padding: "12px 16px 16px", width: "100%", minWidth: 0 }}>
       {activeTab === "results" && (
         <div style={{ display: "flex", gap: 10 }}>
           {activeIndices.map((i, j) => {
@@ -102,8 +132,11 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
               gap: 5,
               padding: "3px 8px",
               borderRadius: 999,
-              background: "var(--bg3)",
-              border: "1px solid var(--border)",
+              background: "var(--glass-control-bg)",
+              border: "1px solid var(--glass-control-border)",
+              backdropFilter: "var(--glass-control-blur)",
+              WebkitBackdropFilter: "var(--glass-control-blur)",
+              boxShadow: "var(--glass-control-shadow)",
               color: "var(--t2)",
               flexShrink: 0,
               fontSize: 10,
@@ -130,31 +163,28 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             return (
               <div
                 key={i}
+                className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip"
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  borderRadius: 14,
-                  background: "var(--bg2)",
-                  border: "1px solid var(--border)",
                   overflow: "hidden",
                   display: "flex",
                   flexDirection: "column",
                 }}
               >
                 <div
+                  className="aidiff-liquid-glass-head aidiff-run-entry-col-head"
                   style={{
                     padding: "9px 14px",
-                    borderBottom: "1px solid var(--border)",
                     display: "flex",
                     alignItems: "center",
                     gap: 7,
                     flexShrink: 0,
-                    background: "var(--bg)",
                     minWidth: 0,
                   }}
                 >
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, overflow: "hidden" }}>
                     <span
                       style={{
                         fontSize: 11,
@@ -169,11 +199,11 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                       {resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}
                     </span>
                     {showBadges && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, flexWrap: "nowrap" }}>
                         <span
                           style={{ ...badgeBase, ...speedBadgeHighlight }}
-                          title={isFastest ? `Schnellste Antwortzeit (${timeLabel})` : `Antwortzeit ${timeLabel}`}
-                          aria-label={isFastest ? `Schnellste Antwortzeit: ${timeLabel}` : `Antwortzeit: ${timeLabel}`}
+                          title={isFastest ? t("run.fastestLatencyTitle", { time: timeLabel }) : t("run.latencyTitle", { time: timeLabel })}
+                          aria-label={isFastest ? t("run.fastestLatencyAria", { time: timeLabel }) : t("run.latencyAria", { time: timeLabel })}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -182,8 +212,8 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                         </span>
                         <span
                           style={{ ...badgeBase, ...costBadgeHighlight }}
-                          title={isCheapest ? `Geringste Kosten (${costPer1kLabel})` : `Kosten ${costPer1kLabel}`}
-                          aria-label={isCheapest ? `Geringste Kosten: ${costPer1kLabel}` : `Kosten pro 1K Tokens: ${costPer1kLabel}`}
+                          title={isCheapest ? t("run.cheapestCostTitle", { cost: costPer1kLabel }) : t("run.costTitle", { cost: costPer1kLabel })}
+                          aria-label={isCheapest ? t("run.cheapestCostAria", { cost: costPer1kLabel }) : t("run.costPer1kAria", { cost: costPer1kLabel })}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                             <ellipse cx="12" cy="6.5" rx="6" ry="2.2" />
@@ -213,37 +243,57 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
       )}
 
       {activeTab === "diff" && (
-        <div style={{ borderRadius: 14, background: "var(--bg)", border: "1px solid var(--border)", overflow: "hidden" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              !run.diffLoading && run.diff && diffParsed ? "minmax(0, 3fr) minmax(0, 2fr)" : "minmax(0, 1fr)",
+            alignItems: "start",
+            gap: 10,
+            width: "100%",
+            minWidth: 0,
+          }}
+        >
           <div
-            style={{
-              padding: "9px 14px",
-              borderBottom: "1px solid var(--border)",
-              fontSize: 11,
-              fontWeight: 500,
-              color: "var(--t2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              background: "var(--bg)",
-            }}
+            className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip"
+            style={{ minWidth: 0, maxWidth: "100%" }}
           >
-            <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <polyline points="16 3 21 3 21 8" />
-                <line x1="4" y1="20" x2="21" y2="3" />
-                <polyline points="21 16 21 21 16 21" />
-                <line x1="15" y1="15" x2="21" y2="21" />
-              </svg>
-              <span>Analyse der Unterschiede</span>
-            </span>
-            <span style={{ fontSize: 9, fontWeight: 400, color: "var(--t3)", flexShrink: 0, fontFamily: "ui-monospace, monospace" }} title="Modell für diese Zusammenfassung">
-              {DIFF_ANALYSIS_MODEL}
-            </span>
+            <div
+              className="aidiff-liquid-glass-head aidiff-run-entry-col-head"
+              style={{
+                padding: "9px 14px",
+                fontSize: 11,
+                fontWeight: 500,
+                color: "var(--t2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                <IconSquareDashedText style={{ flexShrink: 0, color: "currentColor" }} />
+                <span>{t("diff.analysisTitle")}</span>
+              </span>
+              <span style={{ fontSize: 9, fontWeight: 400, color: "var(--t3)", flexShrink: 0, fontFamily: "ui-monospace, monospace" }} title={t("diff.summaryModelTitle")}>
+                {DIFF_ANALYSIS_MODEL}
+              </span>
+            </div>
+            <div style={{ padding: "14px", fontSize: 13, lineHeight: 1.8, color: "var(--text)" }}>
+              {run.diffLoading ? <Dots /> : run.diff && diffParsed ? <DiffUnterschiedeAssessment assessment={diffParsed.assessment} /> : null}
+            </div>
           </div>
-          <div style={{ padding: "14px", fontSize: 13, lineHeight: 1.8, color: "var(--text)" }}>
-            {run.diffLoading ? <Dots /> : run.diff ? <DiffUnterschiedeBody run={run} slots={slots} modelOptions={modelOptions} isDark={isDark} /> : null}
-          </div>
+          {!run.diffLoading && run.diff && diffParsed ? (
+            <div style={{ minWidth: 0, maxWidth: "100%" }}>
+              <DiffUnterschiedeMiniTable
+                miniRows={diffParsed.miniRows}
+                slots={slots}
+                modelOptions={modelOptions}
+                columnCount={diffColumnCount}
+                rowOrder={diffParsed.rowOrder}
+              />
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -254,8 +304,8 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
             return (
-              <div key={i} style={{ flex: 1, minWidth: 0, borderRadius: 14, background: "var(--bg)", border: "1px solid var(--border)", overflow: "hidden" }}>
-                <div style={{ padding: "9px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7, background: "var(--bg)" }}>
+              <div key={i} className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip" style={{ flex: 1, minWidth: 0 }}>
+                <div className="aidiff-liquid-glass-head aidiff-run-entry-col-head" style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
                   <span style={{ fontSize: 11, fontWeight: 500, color: "var(--t2)" }}>{resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}</span>
                   <span style={{ fontSize: 10, color: "var(--t3)", marginLeft: "auto" }}>{pv.sub}</span>
@@ -264,15 +314,15 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
                   {d ? (
                     <>
                       <PerfMetric
-                        label="Kosten / Anfrage"
+                        label={t("perf.costPerRequest")}
                         value={d.cost !== null ? `$${d.cost.toFixed(4)}` : "—"}
                         isBest={d.cost !== null && bestCost !== null && Math.abs(d.cost - bestCost) < 0.000001}
                         subtext={d.cost !== null ? `$${(d.cost * 1000).toFixed(2)} / 1K` : "—"}
                       />
-                      <PerfMetric label="Antwortzeit" value={`${(d.latencyMs / 1000).toFixed(2)}s`} isBest={bestLatency !== null && d.latencyMs === bestLatency} />
-                      <PerfMetric label="Output-Tokens" value={d.outputTokens} isBest={bestOutput !== null && d.outputTokens === bestOutput} />
-                      <PerfMetric label="Tokens / Sek." value={Math.round(d.tps)} isBest={bestTps !== null && Math.abs(d.tps - bestTps) < 0.01} />
-                      <PerfMetric label="Output / Input" value={d.ratio.toFixed(3)} />
+                      <PerfMetric label={t("perf.latency")} value={`${(d.latencyMs / 1000).toFixed(2)}s`} isBest={bestLatency !== null && d.latencyMs === bestLatency} />
+                      <PerfMetric label={t("perf.outputTokens")} value={d.outputTokens} isBest={bestOutput !== null && d.outputTokens === bestOutput} />
+                      <PerfMetric label={t("perf.tps")} value={Math.round(d.tps)} isBest={bestTps !== null && Math.abs(d.tps - bestTps) < 0.01} />
+                      <PerfMetric label={t("perf.outputInputRatio")} value={d.ratio.toFixed(3)} />
                     </>
                   ) : (
                     <Dots />
@@ -283,6 +333,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

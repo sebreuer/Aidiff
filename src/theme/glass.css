@@ -1,0 +1,250 @@
+/**
+ * Liquid-Glass / Oberflächen — alles über CSS-Variablen steuerbar.
+ * Namen siehe `glassTokens.js` (Spiegelung für Refactoring/Docs).
+ */
+
+:root {
+  /* Seiten-Mesh: heller Grund (--bg) + weiche Farbblasen (Indigo / Pink / Cyan / Teal) —
+     Ecken und Richtungen wie im Logo-Verlauf, damit Glas-Blur etwas „zum Leben“ hat */
+  --app-mesh-bg:
+    radial-gradient(ellipse 480px 380px at 0% 0%, rgba(99, 102, 241, 0.13), transparent 58%),
+    radial-gradient(ellipse 460px 360px at 100% 0%, rgba(236, 72, 153, 0.1), transparent 56%),
+    radial-gradient(ellipse 420px 320px at 0% 100%, rgba(20, 184, 166, 0.08), transparent 54%),
+    radial-gradient(ellipse 500px 380px at 100% 100%, rgba(59, 130, 246, 0.1), transparent 55%),
+    radial-gradient(ellipse 920px 520px at 48% 36%, rgba(99, 102, 241, 0.06), transparent 66%),
+    radial-gradient(ellipse 780px 440px at 78% 92%, rgba(236, 72, 153, 0.055), transparent 62%);
+
+  --glass-transition: box-shadow 0.22s ease, border-color 0.22s ease, background 0.18s ease, color 0.15s ease;
+
+  /* Hauptkarten / Composer */
+  --glass-fill: linear-gradient(
+    168deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.42) 40%,
+    rgba(255, 255, 255, 0.24) 100%
+  );
+  --glass-blur: blur(20px) saturate(170%);
+  --glass-blur-soft: blur(12px) saturate(165%);
+  --glass-blur-tab: blur(10px) saturate(150%);
+
+  --glass-stroke: rgba(255, 255, 255, 0.82);
+  --glass-stroke-hover: rgba(255, 255, 255, 0.94);
+  --glass-stroke-focus: rgba(255, 255, 255, 1);
+
+  --glass-shadow: 0 8px 40px -12px rgba(15, 23, 42, 0.11), 0 0 0 1px rgba(255, 255, 255, 0.55) inset,
+    0 1px 0 rgba(255, 255, 255, 0.92) inset, inset 0 -1px 0 rgba(15, 23, 42, 0.05);
+  --glass-shadow-hover: 0 10px 44px -14px rgba(15, 23, 42, 0.13), 0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+    0 1px 0 rgba(255, 255, 255, 0.98) inset, inset 0 -1px 0 rgba(15, 23, 42, 0.055);
+  --glass-shadow-focus: 0 11px 46px -12px rgba(15, 23, 42, 0.17), 0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.7) inset, 0 1px 0 rgba(255, 255, 255, 1) inset;
+
+  /* Hover große Karten / Composer: dezent heller, ohne farbigen Glow */
+  --glass-fill-hover: linear-gradient(
+    168deg,
+    rgba(255, 255, 255, 0.86) 0%,
+    rgba(255, 255, 255, 0.48) 42%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  --glass-blur-hover: blur(21px) saturate(174%);
+
+  /* Innenflächen (Tabs, Spaltenköpfe, Tabellen) */
+  --glass-inner-bg: rgba(255, 255, 255, 0.48);
+  --glass-inner-header-bg: rgba(255, 255, 255, 0.58);
+  --glass-inner-border: rgba(255, 255, 255, 0.52);
+  --glass-inner-inset: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+
+  --glass-tab-track: rgba(255, 255, 255, 0.38);
+
+  /* Dropdown / Popover — gleiche Basisschicht wie Haupt-Glas; keine extra opaken Flächen */
+  --glass-dropdown-fill: var(--glass-fill);
+  --glass-dropdown-blur: var(--glass-blur);
+  --glass-dropdown-stroke: var(--glass-stroke);
+  --glass-dropdown-shadow: var(--glass-shadow);
+  --glass-dropdown-header-bg: transparent;
+  --glass-dropdown-hint-bg: transparent;
+  /* Listenzeilen: leichtes Grau / Schleier — auf Glas besser sichtbar als helles Weiß */
+  --glass-dropdown-row-hover: rgba(15, 23, 42, 0.065);
+  --glass-dropdown-row-active: rgba(15, 23, 42, 0.1);
+  --glass-dropdown-tabs-bg: transparent;
+  --glass-dropdown-tab-active-bg: rgba(255, 255, 255, 0.42);
+  /* wie Einstellungs-Inputs (--modal-input-* aus App.jsx) */
+  --glass-dropdown-search-bg: var(--modal-input-bg, #f3f4f6);
+  --glass-dropdown-search-border: var(--modal-input-border, rgba(0, 0, 0, 0.12));
+
+  /* Kleine Controls (Icon-Buttons, Toolbar) */
+  --glass-control-bg: rgba(255, 255, 255, 0.22);
+  --glass-control-bg-hover: linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.48) 52%, rgba(255, 255, 255, 0.52) 100%);
+  --glass-control-bg-active: rgba(255, 255, 255, 0.58);
+  --glass-control-border: rgba(255, 255, 255, 0.45);
+  --glass-control-border-hover: rgba(0, 0, 0, 0.1);
+  /* Ausgewählte Tabs / Segmente: neutraler Rand (kein Indigoblau) */
+  --glass-selected-border: rgba(0, 0, 0, 0.14);
+  --glass-selected-shadow: 0 0 0 1px rgba(255, 255, 255, 0.48) inset, 0 1px 4px rgba(15, 23, 42, 0.06);
+  --glass-control-blur: blur(14px) saturate(160%);
+  --glass-control-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 1px 2px rgba(15, 23, 42, 0.06);
+  --glass-control-shadow-hover: 0 0 0 1px rgba(255, 255, 255, 0.58) inset, 0 2px 8px rgba(15, 23, 42, 0.08);
+  --glass-control-color: var(--t2);
+  --glass-control-color-hover: var(--text);
+  --glass-control-radius: 8px;
+
+  /* Slot-Zeile / Dropdown-Zeilen: dezent heller, neutral wie Haupt-Glas-Hover */
+  --glass-slot-trigger-hover-bg: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.44) 50%,
+    rgba(255, 255, 255, 0.5) 100%
+  );
+
+  /* Dialog / Overlay */
+  --glass-overlay-bg: rgba(20, 20, 20, 0.22);
+  --glass-overlay-blur: blur(10px) saturate(120%);
+  --glass-dialog-fill: linear-gradient(
+    168deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.38) 100%
+  );
+  --glass-dialog-blur: blur(24px) saturate(170%);
+  --glass-dialog-stroke: rgba(255, 255, 255, 0.78);
+  --glass-dialog-shadow: 0 16px 46px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+
+  /* Chips (Datei-Anhang) — wie Haupt-Glas / Composer */
+  --glass-chip-fill: var(--glass-fill);
+  --glass-chip-blur: var(--glass-blur);
+  --glass-chip-stroke: var(--glass-stroke);
+  --glass-chip-shadow: var(--glass-shadow);
+
+  /* Meta-Pill / sekundäre Pillen in der Toolbar */
+  --glass-pill-bg: rgba(255, 255, 255, 0.28);
+  --glass-pill-bg-hover: linear-gradient(145deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.48) 45%, rgba(255, 255, 255, 0.52) 100%);
+  --glass-pill-bg-on: rgba(255, 255, 255, 0.55);
+  --glass-pill-blur: blur(12px) saturate(155%);
+  --glass-pill-stroke: rgba(255, 255, 255, 0.42);
+  --glass-pill-stroke-on: rgba(255, 255, 255, 0.58);
+  --glass-pill-stroke-hover: rgba(0, 0, 0, 0.12);
+
+  /* Senden (Primary) */
+  --glass-send-bg: var(--text);
+  --glass-send-color: var(--bg);
+  --glass-send-bg-disabled: rgba(255, 255, 255, 0.22);
+  --glass-send-color-disabled: var(--t3);
+  --glass-send-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  --glass-send-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 4px 14px rgba(15, 23, 42, 0.14);
+
+  /* Metrik-Kacheln (Performance) — „Best“ wie Ergebnis-Chips in Grün */
+  --glass-metric-bg: rgba(255, 255, 255, 0.12);
+  --glass-metric-border: rgba(255, 255, 255, 0.35);
+  --glass-metric-best-bg: rgba(22, 163, 74, 0.12);
+  --glass-metric-best-border: rgba(22, 163, 74, 0.38);
+  --glass-metric-best-accent: #15803d;
+
+  /* Composer-Rasterlinien (ersetzt flache --border wo gewünscht) */
+  --glass-composer-divider: rgba(0, 0, 0, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-mesh-bg:
+      radial-gradient(ellipse 480px 380px at 0% 0%, rgba(129, 140, 248, 0.17), transparent 58%),
+      radial-gradient(ellipse 460px 360px at 100% 0%, rgba(244, 114, 182, 0.14), transparent 56%),
+      radial-gradient(ellipse 420px 320px at 0% 100%, rgba(45, 212, 191, 0.1), transparent 54%),
+      radial-gradient(ellipse 500px 380px at 100% 100%, rgba(56, 189, 248, 0.13), transparent 55%),
+      radial-gradient(ellipse 920px 520px at 48% 36%, rgba(129, 140, 248, 0.09), transparent 66%),
+      radial-gradient(ellipse 780px 440px at 78% 92%, rgba(244, 114, 182, 0.07), transparent 62%);
+
+    --glass-fill: linear-gradient(165deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.048) 40%, rgba(255, 255, 255, 0.02) 100%);
+    --glass-blur: blur(16px) saturate(180%);
+    --glass-blur-soft: blur(12px) saturate(175%);
+    --glass-blur-tab: blur(10px) saturate(150%);
+
+    --glass-stroke: rgba(255, 255, 255, 0.16);
+    --glass-stroke-hover: rgba(255, 255, 255, 0.24);
+    --glass-stroke-focus: rgba(255, 255, 255, 0.32);
+
+    --glass-shadow: 0 8px 40px -10px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.11) inset,
+      0 1px 0 rgba(255, 255, 255, 0.2) inset, inset 0 -1px 0 rgba(0, 0, 0, 0.38);
+    --glass-shadow-hover: 0 10px 44px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.19) inset,
+      0 1px 0 rgba(255, 255, 255, 0.3) inset, inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+
+    --glass-fill-hover: linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    --glass-blur-hover: blur(17px) saturate(182%);
+    --glass-shadow-focus: 0 11px 48px -10px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 0 0 1px rgba(255, 255, 255, 0.18) inset, 0 1px 0 rgba(255, 255, 255, 0.3) inset;
+
+    --glass-inner-bg: rgba(255, 255, 255, 0.055);
+    --glass-inner-header-bg: rgba(255, 255, 255, 0.075);
+    --glass-inner-border: rgba(255, 255, 255, 0.1);
+    --glass-inner-inset: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+
+    --glass-tab-track: rgba(255, 255, 255, 0.055);
+
+    --glass-dropdown-fill: var(--glass-fill);
+    --glass-dropdown-blur: var(--glass-blur);
+    --glass-dropdown-stroke: var(--glass-stroke);
+    --glass-dropdown-shadow: var(--glass-shadow);
+    --glass-dropdown-header-bg: transparent;
+    --glass-dropdown-hint-bg: transparent;
+    --glass-dropdown-row-hover: rgba(255, 255, 255, 0.08);
+    --glass-dropdown-row-active: rgba(255, 255, 255, 0.13);
+    --glass-dropdown-tabs-bg: transparent;
+    --glass-dropdown-tab-active-bg: rgba(255, 255, 255, 0.1);
+    --glass-dropdown-search-bg: var(--modal-input-bg, #141414);
+    --glass-dropdown-search-border: var(--modal-input-border, rgba(255, 255, 255, 0.12));
+
+    --glass-control-bg: rgba(255, 255, 255, 0.06);
+    --glass-control-bg-hover: linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.1) 52%, rgba(255, 255, 255, 0.12) 100%);
+    --glass-control-bg-active: rgba(255, 255, 255, 0.16);
+    --glass-control-border: rgba(255, 255, 255, 0.1);
+    --glass-control-border-hover: rgba(255, 255, 255, 0.22);
+    --glass-selected-border: rgba(255, 255, 255, 0.22);
+    --glass-selected-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 1px 4px rgba(0, 0, 0, 0.35);
+    --glass-control-blur: blur(12px) saturate(170%);
+    --glass-control-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 1px 2px rgba(0, 0, 0, 0.25);
+    --glass-control-shadow-hover: 0 0 0 1px rgba(255, 255, 255, 0.14) inset, 0 2px 10px rgba(0, 0, 0, 0.35);
+
+    --glass-slot-trigger-hover-bg: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+
+    --glass-overlay-bg: rgba(0, 0, 0, 0.48);
+    --glass-overlay-blur: blur(12px) saturate(110%);
+    --glass-dialog-fill: linear-gradient(165deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.03) 100%);
+    --glass-dialog-blur: blur(22px) saturate(175%);
+    --glass-dialog-stroke: rgba(255, 255, 255, 0.16);
+    --glass-dialog-shadow: 0 16px 46px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+      0 1px 0 rgba(255, 255, 255, 0.16) inset;
+
+    --glass-chip-fill: var(--glass-fill);
+    --glass-chip-blur: var(--glass-blur);
+    --glass-chip-stroke: var(--glass-stroke);
+    --glass-chip-shadow: var(--glass-shadow);
+
+    --glass-pill-bg: rgba(255, 255, 255, 0.06);
+    --glass-pill-bg-hover: linear-gradient(145deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.09) 45%, rgba(255, 255, 255, 0.11) 100%);
+    --glass-pill-bg-on: rgba(255, 255, 255, 0.12);
+    --glass-pill-blur: blur(12px) saturate(160%);
+    --glass-pill-stroke: rgba(255, 255, 255, 0.1);
+    --glass-pill-stroke-on: rgba(255, 255, 255, 0.16);
+    --glass-pill-stroke-hover: rgba(255, 255, 255, 0.22);
+
+    --glass-send-bg-disabled: rgba(255, 255, 255, 0.06);
+    --glass-send-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.14) inset, 0 4px 18px rgba(0, 0, 0, 0.4);
+
+    --glass-metric-bg: rgba(255, 255, 255, 0.04);
+    --glass-metric-border: rgba(255, 255, 255, 0.1);
+    --glass-metric-best-bg: rgba(22, 163, 74, 0.2);
+    --glass-metric-best-border: rgba(74, 222, 128, 0.4);
+    --glass-metric-best-accent: #86efac;
+
+    --glass-composer-divider: rgba(255, 255, 255, 0.1);
+  }
+}

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AIDIFF_USE_MOCK, DIFF_ANALYSIS_MODEL, buildDiffSystem, SETTINGS_PROVIDER_ORDER } from "./constants/appConfig.js";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { DIFF_ANALYSIS_MODEL, SETTINGS_PROVIDER_ORDER } from "./constants/appConfig.js";
 import { AnimatedBrandLogo } from "./components/AnimatedBrandLogo.jsx";
 import { CollapsedRun } from "./components/CollapsedRun.jsx";
+import { Dots } from "./components/Dots.jsx";
 import { ComposerModelSlots } from "./components/ComposerModelSlots.jsx";
 import { ComposerStyleIconButton } from "./components/ComposerStyleIconButton.jsx";
 import { FileChip } from "./components/FileChip.jsx";
@@ -18,15 +19,63 @@ import {
   markStaleCatalogRetried,
   readModelCatalogFromStorage,
 } from "./lib/modelCatalog.js";
-import { defaultCompareSlotsTwo, defaultModelOptions, getActiveSlotIndices, getProvider, resolveModelLabel } from "./lib/modelUtils.js";
-import { SHADOWS } from "./theme/tokens.js";
+import { buildDiffSystem } from "./i18n/prompts.js";
+import { useI18n } from "./i18n/I18nContext.jsx";
+import { defaultCompareSlotsTwo, defaultModelOptions, getActiveSlotIndices, getProvider, migrateCompareSlotsForApiKeys, resolveModelLabel } from "./lib/modelUtils.js";
+
+function draftHasAnyConfiguredApiKey(draft) {
+  return ["claude", "gemini", "gpt"].some((k) => String(draft[k] ?? "").trim().length > 0);
+}
+
+/** Header control: gear icon + label (same glass control style as composer). */
+function HeaderSettingsButton({ label, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      className="aidiff-glass-control"
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(e);
+      }}
+      style={{
+        padding: "6px 12px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        fontWeight: 500,
+        letterSpacing: "0.01em",
+        color: "var(--t2)",
+        maxWidth: "100%",
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? "not-allowed" : undefined,
+      }}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+    </button>
+  );
+}
 
 export default function App() {
+  const { t, locale } = useI18n();
   const [prompt, setPrompt] = useState("");
   const [file, setFile] = useState(null);
   const [fileContent, setFileContent] = useState(null);
-  const [composerHovered, setComposerHovered] = useState(false);
-  const [composerFocused, setComposerFocused] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [compareSlots, setCompareSlots] = useState(() => defaultCompareSlotsTwo());
   const [modelOptions, setModelOptions] = useState(() => defaultModelOptions());
@@ -39,6 +88,9 @@ export default function App() {
   const [showMeta, setShowMeta] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeysDraft, setApiKeysDraft] = useState({ claude: "", gemini: "", gpt: "" });
+  const [apiKeysCommitted, setApiKeysCommitted] = useState({ claude: "", gemini: "", gpt: "" });
+  const [apiKeysBootstrap, setApiKeysBootstrap] = useState(/** @type {"loading" | "ready" | "error"} */ ("loading"));
+  const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
   const [settingsKeysLoading, setSettingsKeysLoading] = useState(false);
   const [settingsKeysError, setSettingsKeysError] = useState("");
   const textareaRef = useRef(null);
@@ -46,8 +98,36 @@ export default function App() {
   const bottomRef = useRef(null);
   const settingsMenuRef = useRef(null);
   const settingsModalRef = useRef(null);
+  const scrollAreaRef = useRef(null);
+  const [scrollAreaVBarPx, setScrollAreaVBarPx] = useState(0);
 
   const dockedInHeader = runs.length > 0;
+  const apiKeysGateActive = apiKeysBootstrap === "ready" && !apiKeysConfigured;
+  const settingsModalOpen = settingsOpen || apiKeysGateActive;
+
+  useLayoutEffect(() => {
+    if (runs.length === 0) {
+      setScrollAreaVBarPx(0);
+      return;
+    }
+    const measure = () => {
+      const el = scrollAreaRef.current;
+      if (!el) return;
+      setScrollAreaVBarPx(el.offsetWidth - el.clientWidth);
+    };
+    measure();
+    const el = scrollAreaRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    const t = window.setTimeout(measure, 0);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.clearTimeout(t);
+    };
+  }, [runs, expandedRuns, showMeta, running]);
 
   useEffect(() => {
     let fontLink = document.getElementById("aidiff-unbounded-font");
@@ -67,6 +147,7 @@ export default function App() {
       @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;--text:#ececec;--t2:#9ca3af;--t3:#6b7280;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--modal-input-bg:#141414;--modal-input-border:rgba(255,255,255,0.12);--modal-input-border-hover:rgba(255,255,255,0.22);--modal-input-border-focus:#e5e5e5;--modal-input-ring:rgba(255,255,255,0.12);--modal-secondary-border:rgba(255,255,255,0.16);--modal-secondary-hover:rgba(255,255,255,0.06);}}
       *{box-sizing:border-box;margin:0;padding:0;}
       html,body,#root{height:100%;}
+      #root{min-height:100%;background-color:var(--bg);background-image:var(--app-mesh-bg);background-attachment:fixed;}
       body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);background:transparent;overflow:hidden;}
       textarea::placeholder{color:var(--t3);}
       @keyframes kf{0%,80%,100%{opacity:.2}40%{opacity:1}}
@@ -85,15 +166,44 @@ export default function App() {
       .aidiff-settings-btn-primary:not(:disabled):hover{transform:scale(1.02)}
       .aidiff-settings-btn-primary:not(:disabled):active{transform:scale(0.98)}
       .aidiff-settings-btn-secondary{transition:background 0.1s ease, border-color 0.1s ease, color 0.1s ease}
-      .scroll-area{flex:1;overflow-y:auto;padding:20px 24px;padding-bottom:calc(12px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
+      .scroll-area{flex:1;overflow-y:auto;scrollbar-gutter:stable;padding:20px 24px;padding-bottom:calc(12px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
       .scroll-area::-webkit-scrollbar{width:6px;}
       .scroll-area::-webkit-scrollbar-track{background:transparent;}
       .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-      .composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:10px 24px calc(32px + env(safe-area-inset-bottom, 0px));background:transparent;pointer-events:none;}
-      .composer-wrap .composer-inner{pointer-events:auto;}
+      .composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:28;padding:10px 24px calc(32px + env(safe-area-inset-bottom, 0px));background:transparent;pointer-events:none;overflow:visible;}
+      .composer-wrap .composer-inner{pointer-events:auto;overflow:visible;}
       .aidiff-meta-above-composer{flex-shrink:0;padding:0 24px;padding-bottom:calc(10px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
     `;
     document.head.appendChild(style);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings/keys")
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((parsed) => {
+        if (cancelled) return;
+        const draft = {
+          claude: typeof parsed.claude === "string" ? parsed.claude : "",
+          gemini: typeof parsed.google === "string" ? parsed.google : "",
+          gpt: typeof parsed.openai === "string" ? parsed.openai : "",
+        };
+        setApiKeysDraft(draft);
+        setApiKeysCommitted(draft);
+        setApiKeysConfigured(draftHasAnyConfiguredApiKey(draft));
+        setApiKeysBootstrap("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setApiKeysBootstrap("error");
+        setApiKeysConfigured(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -108,16 +218,19 @@ export default function App() {
       })
       .then((parsed) => {
         if (cancelled) return;
-        setApiKeysDraft({
+        const draft = {
           claude: typeof parsed.claude === "string" ? parsed.claude : "",
           gemini: typeof parsed.google === "string" ? parsed.google : "",
           gpt: typeof parsed.openai === "string" ? parsed.openai : "",
-        });
+        };
+        setApiKeysDraft(draft);
+        setApiKeysCommitted(draft);
+        setApiKeysConfigured(draftHasAnyConfiguredApiKey(draft));
       })
       .catch(() => {
         if (cancelled) return;
         setSettingsKeysError(
-          "Keys konnten nicht geladen werden. Bitte Dev-Server neu starten (npm run dev) — der Endpunkt /api/settings/keys läuft nur in Vite, nicht als statische Datei."
+          t("settings.keysLoadError")
         );
       })
       .finally(() => {
@@ -126,11 +239,12 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [settingsOpen]);
+  }, [settingsOpen, t]);
 
   useEffect(() => {
-    if (!settingsOpen) return;
+    if (!settingsModalOpen) return;
     const onDown = (e) => {
+      if (apiKeysGateActive) return;
       const el = settingsMenuRef.current;
       const modal = settingsModalRef.current;
       if (el && el.contains(e.target)) return;
@@ -138,7 +252,7 @@ export default function App() {
       setSettingsOpen(false);
     };
     const onKeyDown = (e) => {
-      if (e.key === "Escape") setSettingsOpen(false);
+      if (e.key === "Escape" && !apiKeysGateActive) setSettingsOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKeyDown);
@@ -146,7 +260,7 @@ export default function App() {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [settingsOpen]);
+  }, [settingsModalOpen, apiKeysGateActive]);
 
   useEffect(() => {
     let alive = true;
@@ -204,8 +318,10 @@ export default function App() {
     );
   }, [modelListsLoaded, modelOptions]);
 
-  const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
-  const composerShadow = composerFocused ? shadows.focus : composerHovered ? shadows.hover : shadows.default;
+  useEffect(() => {
+    if (!modelListsLoaded) return;
+    setCompareSlots((prev) => migrateCompareSlotsForApiKeys(prev, apiKeysCommitted, modelOptions));
+  }, [modelListsLoaded, apiKeysCommitted, modelOptions]);
 
   const adjustHeight = useCallback(() => {
     const ta = textareaRef.current;
@@ -227,7 +343,7 @@ export default function App() {
   const doRun = useCallback(async () => {
     if (!canSend) return;
     const p = prompt.trim();
-    const fullPrompt = p + (fileContent ? `\n\n[Datei: ${file?.name}]\n${fileContent}` : "");
+    const fullPrompt = p + (fileContent ? `\n\n${t("composer.fileBlock", { name: file?.name || "" })}\n${fileContent}` : "");
     setPrompt("");
     setFile(null);
     setFileContent(null);
@@ -260,7 +376,7 @@ export default function App() {
         const slot = snapshot[i];
         const opts = modelOptions[slot.providerKey];
         if (opts?.length && !opts.some((o) => o.value === slot.modelValue)) {
-          return Promise.reject(new Error(`Modell nicht in der geladenen Liste: ${slot.modelValue}`));
+          return Promise.reject(new Error(t("errors.modelNotInList", { id: slot.modelValue })));
         }
         const pr = getProvider(slot.providerKey);
         const label = resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions);
@@ -295,7 +411,7 @@ export default function App() {
         setCatalogUpdatedAt(fetchedAt);
         markStaleCatalogRetried(catalogFetchedAtBeforeRetry);
       } catch {
-        /* kein markStaleCatalogRetried — erneuter Versuch beim nächsten Lauf möglich */
+        /* no markStaleCatalogRetried — retry possible on next run */
       } finally {
         setCatalogRefreshing(false);
       }
@@ -305,22 +421,26 @@ export default function App() {
       setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diffLoading: true } : r)));
       try {
         const slotCount = activeIndices.length;
-        const dp = `Prompt: "${p}"\n\n${activeIndices
-          .map((i, k) => `${resolveModelLabel(snapshot[i].providerKey, snapshot[i].modelValue, modelOptions)} (Antwort ${k + 1}):\n${nr[i]}`)
-          .join("\n\n")}`;
-        const { text } = await callGoogleAPI(buildDiffSystem(slotCount), dp, DIFF_ANALYSIS_MODEL, { maxOutputTokens: 4096 });
+        const header = t("diff.user.promptLine", { prompt: p });
+        const blocks = activeIndices.map((i, k) => {
+          const label = resolveModelLabel(snapshot[i].providerKey, snapshot[i].modelValue, modelOptions);
+          return `${t("diff.user.answerHeader", { label, n: k + 1 })}\n${nr[i]}`;
+        });
+        const dp = `${header}\n\n${blocks.join("\n\n")}`;
+        const { text } = await callGoogleAPI(buildDiffSystem(slotCount, locale), dp, DIFF_ANALYSIS_MODEL, { maxOutputTokens: 4096 });
         setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, diff: text, diffLoading: false } : r)));
       } catch (e) {
-        const msg = e?.message ? String(e.message).slice(0, 500) : "Unbekannter Fehler";
+        const msg = e?.message ? String(e.message).slice(0, 500) : t("errors.unknown");
         setRuns((prev) =>
-          prev.map((r) => (r.id === runId ? { ...r, diff: `Unterschiede-Analyse fehlgeschlagen (${DIFF_ANALYSIS_MODEL}): ${msg}`, diffLoading: false } : r))
+          prev.map((r) => (r.id === runId ? { ...r, diff: t("run.diffAnalysisFailed", { model: DIFF_ANALYSIS_MODEL, message: msg }), diffLoading: false } : r))
         );
       }
     }
-  }, [canSend, prompt, file, fileContent, compareSlots, modelOptions, catalogUpdatedAt]);
+  }, [canSend, prompt, file, fileContent, compareSlots, modelOptions, catalogUpdatedAt, locale, t]);
 
   const completedRuns = runs.filter((r) => getActiveSlotIndices(r).every((i) => r.results[i] || r.errors[i]));
   const providerSettingRows = useMemo(() => SETTINGS_PROVIDER_ORDER.map((key) => getProvider(key)), []);
+  const apiKeysForPicker = apiKeysBootstrap === "ready" ? apiKeysCommitted : undefined;
 
   const saveApiKeySettings = useCallback(() => {
     setSettingsKeysError("");
@@ -334,19 +454,21 @@ export default function App() {
       }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`Speichern fehlgeschlagen (HTTP ${res.status}).`);
+        if (!res.ok) throw new Error(t("settings.saveFailedHttp", { status: res.status }));
+        setApiKeysCommitted(apiKeysDraft);
+        setApiKeysConfigured(draftHasAnyConfiguredApiKey(apiKeysDraft));
         setSettingsOpen(false);
       })
       .catch((e) => {
-        setSettingsKeysError(e?.message || "Speichern fehlgeschlagen.");
+        setSettingsKeysError(e?.message || t("settings.saveFailedGeneric"));
       });
-  }, [apiKeysDraft]);
+  }, [apiKeysDraft, t]);
 
   const settingsModal = (
     <SettingsModal
-      open={settingsOpen}
+      open={settingsModalOpen}
+      gateMode={apiKeysGateActive}
       onClose={() => setSettingsOpen(false)}
-      isDark={isDark}
       modalRef={settingsModalRef}
       settingsKeysError={settingsKeysError}
       settingsKeysLoading={settingsKeysLoading}
@@ -358,18 +480,16 @@ export default function App() {
   );
 
   const composerBlock = (
-    <div
-      onMouseEnter={() => setComposerHovered(true)}
-      onMouseLeave={() => setComposerHovered(false)}
-      style={{ borderRadius: 20, background: "var(--bg)", boxShadow: composerShadow, border: "1px solid transparent", transition: "box-shadow 0.15s ease", cursor: "text" }}
-      onClick={() => textareaRef.current?.focus()}
-    >
-      <ComposerModelSlots
-        compareSlots={compareSlots}
-        setCompareSlots={setCompareSlots}
-        modelOptions={modelOptions}
-        listsLoading={!modelListsLoaded || catalogRefreshing}
-      />
+    <div className="aidiff-liquid-glass aidiff-liquid-glass--composer-root" style={{ cursor: "text" }} onClick={() => textareaRef.current?.focus()}>
+      <div className="aidiff-composer-slots-strip">
+        <ComposerModelSlots
+          compareSlots={compareSlots}
+          setCompareSlots={setCompareSlots}
+          modelOptions={modelOptions}
+          listsLoading={!modelListsLoaded || catalogRefreshing}
+          apiKeysCommitted={apiKeysForPicker}
+        />
+      </div>
       {file && (
         <div style={{ padding: "10px 16px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
           <FileChip
@@ -382,154 +502,114 @@ export default function App() {
         </div>
       )}
       <textarea
-        ref={textareaRef}
-        value={prompt}
-        placeholder="Zwei oder drei Modelle vergleichen…"
-        onChange={(e) => {
-          setPrompt(e.target.value);
-          adjustHeight();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            doRun();
-          }
-        }}
-        onFocus={() => setComposerFocused(true)}
-        onBlur={() => setComposerFocused(false)}
-        rows={1}
-        style={{
-          width: "100%",
-          display: "block",
-          minHeight: 52,
-          maxHeight: 200,
-          fontFamily: "inherit",
-          fontSize: 15,
-          lineHeight: "1.625",
-          padding: "14px 16px 0",
-          border: "none",
-          outline: "none",
-          resize: "none",
-          background: "transparent",
-          color: "var(--text)",
-          overflowY: "auto",
-          cursor: "text",
-        }}
-      />
+          ref={textareaRef}
+          value={prompt}
+          placeholder={t("composer.placeholder")}
+          onChange={(e) => {
+            setPrompt(e.target.value);
+            adjustHeight();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              doRun();
+            }
+          }}
+          rows={1}
+          style={{
+            width: "100%",
+            display: "block",
+            minHeight: 52,
+            maxHeight: 200,
+            fontFamily: "inherit",
+            fontSize: 15,
+            lineHeight: "1.625",
+            padding: "14px 16px 0",
+            border: "none",
+            outline: "none",
+            resize: "none",
+            background: "transparent",
+            color: "var(--text)",
+            overflowY: "auto",
+            cursor: "text",
+          }}
+        />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px 8px 6px" }}>
-        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          <ComposerStyleIconButton ariaLabel="Datei anhängen" onClick={() => fileInputRef.current?.click()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-            </svg>
-          </ComposerStyleIconButton>
-          <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.py,.js,.ts,.html,.css" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
-          {runs.length >= 2 && (
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <ComposerStyleIconButton ariaLabel={t("composer.attachFile")} onClick={() => fileInputRef.current?.click()}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </ComposerStyleIconButton>
+            <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.py,.js,.ts,.html,.css" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
+            {runs.length >= 2 && (
+              <button
+                type="button"
+                className="aidiff-glass-pill"
+                data-on={showMeta ? "true" : undefined}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMeta((v) => !v);
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                {t("composer.metaAnalysisRuns", { count: runs.length })}
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <button
+              type="button"
+              className="aidiff-glass-send"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowMeta((v) => !v);
+                doRun();
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                background: showMeta ? "var(--bg3)" : "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 10px",
-                borderRadius: 8,
-                color: showMeta ? "var(--text)" : "var(--t2)",
-                fontSize: 12,
-                fontFamily: "inherit",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--bg3)";
-                e.currentTarget.style.color = "var(--text)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = showMeta ? "var(--bg3)" : "none";
-                e.currentTarget.style.color = showMeta ? "var(--text)" : "var(--t2)";
-              }}
+              disabled={!canSend}
+              aria-label={t("composer.send")}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              Meta-Analyse ({runs.length} Runs)
+              {running ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5" />
+                  <polyline points="5 12 12 5 19 12" />
+                </svg>
+              )}
             </button>
-          )}
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          {AIDIFF_USE_MOCK && (
-            <span
-              role="status"
-              title="Mock-Preset aktiv: Default-Slots starten mit drei Gemini-Flash-Modellen. API-Calls bleiben echt."
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                letterSpacing: "0.02em",
-                padding: "5px 11px",
-                borderRadius: 999,
-                fontFamily: "ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif",
-                lineHeight: 1.2,
-                userSelect: "none",
-                ...(isDark
-                  ? {
-                      background: "rgba(217, 112, 87, 0.14)",
-                      color: "#e8c8bf",
-                      border: "1px solid rgba(232, 176, 158, 0.28)",
-                      boxShadow: "0 1px 0 rgba(0,0,0,0.2) inset",
-                    }
-                  : {
-                      background: "linear-gradient(180deg, #fdf9f7 0%, #f7f0ec 100%)",
-                      color: "#5c3a32",
-                      border: "1px solid rgba(217, 112, 87, 0.28)",
-                      boxShadow: "0 1px 0 rgba(255,255,255,0.85) inset, 0 0 0 1px rgba(255,255,255,0.4) inset",
-                    }),
-              }}
-            >
-              Mock
-            </span>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              doRun();
-            }}
-            disabled={!canSend}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              border: "none",
-              cursor: canSend ? "pointer" : "default",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: canSend ? "var(--text)" : "var(--bg3)",
-              color: canSend ? "var(--bg)" : "var(--t3)",
-              transition: "background 0.15s, color 0.15s",
-              flexShrink: 0,
-            }}
-          >
-            {running ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-              </svg>
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" />
-                <polyline points="5 12 12 5 19 12" />
-              </svg>
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
+
+  if (apiKeysBootstrap === "loading") {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "inherit",
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <AnimatedBrandLogo dockedInHeader={false} />
+        <div style={{ marginTop: 28 }}>
+          <Dots />
+        </div>
+        <p style={{ marginTop: 18, fontSize: 14, color: "var(--t2)", maxWidth: 360, lineHeight: 1.5 }}>{t("settings.keysBootstrapLoading")}</p>
+      </div>
+    );
+  }
 
   if (runs.length === 0) {
     return (
@@ -549,12 +629,11 @@ export default function App() {
         >
           <HeaderWordmark dockedInHeader={false} />
           <div ref={settingsMenuRef} style={{ position: "relative" }}>
-            <ComposerStyleIconButton ariaLabel="Einstellungen" onClick={() => setSettingsOpen((o) => !o)}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </ComposerStyleIconButton>
+            <HeaderSettingsButton
+              label={t("settings.headerButton")}
+              disabled={apiKeysGateActive}
+              onClick={() => setSettingsOpen((o) => !o)}
+            />
           </div>
         </header>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
@@ -570,7 +649,7 @@ export default function App() {
               lineHeight: 1.25,
             }}
           >
-            Was wollen wir vergleichen?
+            {t("emptyState.title")}
           </div>
           <div style={{ width: "100%", maxWidth: 672 }}>{composerBlock}</div>
         </div>
@@ -590,21 +669,20 @@ export default function App() {
           justifyContent: "space-between",
           width: "100%",
           boxSizing: "border-box",
-          padding: "12px 24px 4px",
+          padding: `12px calc(24px + ${scrollAreaVBarPx}px) 4px 24px`,
           background: "transparent",
         }}
       >
         <HeaderWordmark dockedInHeader={dockedInHeader} />
         <div ref={settingsMenuRef} style={{ position: "relative" }}>
-          <ComposerStyleIconButton ariaLabel="Einstellungen" onClick={() => setSettingsOpen((o) => !o)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </ComposerStyleIconButton>
+          <HeaderSettingsButton
+            label={t("settings.headerButton")}
+            disabled={apiKeysGateActive}
+            onClick={() => setSettingsOpen((o) => !o)}
+          />
         </div>
       </header>
-      <div className="scroll-area">
+      <div className="scroll-area" ref={scrollAreaRef}>
         {runs.slice(0, -1).map((r) => (
           <div key={r.id} style={{ marginBottom: 12 }}>
             {expandedRuns.has(r.id) ? (
@@ -621,7 +699,7 @@ export default function App() {
                 }
               />
             ) : (
-              <CollapsedRun run={r} isDark={isDark} onExpand={() => setExpandedRuns((prev) => new Set([...prev, r.id]))} />
+              <CollapsedRun run={r} onExpand={() => setExpandedRuns((prev) => new Set([...prev, r.id]))} />
             )}
           </div>
         ))}
@@ -637,7 +715,7 @@ export default function App() {
 
       {showMeta && completedRuns.length >= 2 && (
         <div className="aidiff-meta-above-composer">
-          <MetaPanel runs={completedRuns} isDark={isDark} onClose={() => setShowMeta(false)} modelOptions={modelOptions} />
+          <MetaPanel runs={completedRuns} onClose={() => setShowMeta(false)} modelOptions={modelOptions} />
         </div>
       )}
 

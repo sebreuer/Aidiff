@@ -1,11 +1,41 @@
-import { MINI_VERGLEICH_ROW_ORDER } from "../constants/appConfig.js";
+/** Localized mini-row labels → English canonical keys (rowOrder matching). */
+const LEGACY_MINI_ROW_KEYS = {
+  einstieg: "opening",
+  öffnung: "opening",
+  oeffnung: "opening",
+  opening: "opening",
+  ton: "tone",
+  tone: "tone",
+  länge: "length",
+  laenge: "length",
+  umfang: "length",
+  length: "length",
+  struktur: "structure",
+  structure: "structure",
+  sachlichkeit: "factuality",
+  factuality: "factuality",
+  abschluss: "closing",
+  closing: "closing",
+};
 
 export function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
- * Inhalt unter ##/### `title` bis zur nächsten ##/###-Überschrift (reihenfolge-unabhängig).
+ * @param {string} label
+ * @param {string[]} rowOrder display labels (e.g. Opening, Tone, …)
+ */
+export function canonicalMiniRowKey(label, rowOrder) {
+  const L = label.trim().toLowerCase();
+  const mapped = LEGACY_MINI_ROW_KEYS[L];
+  const want = (mapped || L).toLowerCase();
+  const found = rowOrder.find((r) => r.toLowerCase() === want);
+  return found ? found.toLowerCase() : L;
+}
+
+/**
+ * Content under ##/### `title` until the next ##/### heading (order-independent).
  */
 export function extractMarkdownSection(full, title) {
   const esc = escapeRegExp(title.trim());
@@ -33,9 +63,19 @@ export function stripMiniMarkdownCell(s) {
     .trim();
 }
 
+/** Plain mini-table cell: strips markdown, caps at `maxWords` for a quick-scan overview. */
+export function miniCellDisplayText(s, maxWords = 3) {
+  const cleaned = stripMiniMarkdownCell(String(s ?? ""));
+  const t = cleaned.trim();
+  if (!t || t === "—") return t || "—";
+  const parts = t.split(/\s+/).filter(Boolean);
+  if (parts.length <= maxWords) return parts.join(" ");
+  return `${parts.slice(0, maxWords).join(" ")}…`;
+}
+
 function isLikelyMiniTemplateRow(label, vals) {
   const L = `${label} ${vals.join(" ")}`.toLowerCase();
-  if (/parametername|kurzwert\d|platzhalter/i.test(L)) return true;
+  if (/parametername|kurzwert\d|platzhalter|placeholder/i.test(L)) return true;
   if (label.length > 36) return true;
   return false;
 }
@@ -49,8 +89,8 @@ export function parseOneMinivergleichLine(line, columnCount = 3) {
   if (!m) m = t.match(/^([^:#\n]{2,48}):\s*(.+)$/);
   if (!m) return null;
   const label = m[1].trim().replace(/\*+/g, "");
-  if (/^(Antwort|Spalte)\s*[123]$/i.test(label)) return null;
-  if (/^(genau|jede|nur|schreibe|trenner)/i.test(label)) return null;
+  if (/^(Antwort|Answer|Response|Spalte|Column)\s*[123]\b/i.test(label)) return null;
+  if (/^(genau|jede|nur|schreibe|trenner|exactly|write|only|separator)/i.test(label)) return null;
   let rest = normalizeMiniSeparators(m[2].trim()).replace(/\s*#.*$/, "");
   let parts = rest
     .split(/\s*·\s*/)
@@ -78,8 +118,7 @@ export function parseOneMinivergleichLine(line, columnCount = 3) {
   if (vals.length < 2) return null;
   while (vals.length < columnCount) vals.push("—");
   if (vals.length > columnCount) vals = vals.slice(0, columnCount);
-  vals = vals.map(stripMiniMarkdownCell);
-  if (isLikelyMiniTemplateRow(label, vals)) return null;
+  if (isLikelyMiniTemplateRow(label, vals.map(stripMiniMarkdownCell))) return null;
   return { label: stripMiniMarkdownCell(label), vals };
 }
 
@@ -105,37 +144,57 @@ function dedupeMiniRows(rows) {
   return out;
 }
 
-/** Keine „Spielerauswahl“. Immer exakt 6 Zeilen in fester Reihenfolge; fehlende Modellwerte → „—“. @param {2 | 3} columnCount */
-export function normalizeMiniComparisonRows(rows, columnCount = 3) {
+/**
+ * Exactly six rows in fixed order; missing model values → "—".
+ * @param {Array<{ label: string, vals: string[] }>} rows
+ * @param {2 | 3} columnCount
+ * @param {string[]} rowOrder
+ */
+export function normalizeMiniComparisonRows(rows, columnCount = 3, rowOrder) {
+  const order = rowOrder?.length ? rowOrder : ["Opening", "Tone", "Length", "Structure", "Factuality", "Closing"];
   const dash = () => Array.from({ length: columnCount }, () => "—");
-  const filtered = rows.filter((r) => r?.label && !/spielerauswahl/i.test(r.label.trim()));
+  const filtered = rows.filter(
+    (r) => r?.label && !/spielerauswahl|player\s*pick|draft\s*picks/i.test(r.label.trim())
+  );
   const byKey = new Map();
   for (const r of filtered) {
-    byKey.set(r.label.trim().toLowerCase(), r);
+    const k = canonicalMiniRowKey(r.label, order);
+    byKey.set(k, r);
   }
-  return MINI_VERGLEICH_ROW_ORDER.map((name) => {
+  return order.map((name) => {
     const hit = byKey.get(name.toLowerCase());
     if (!hit || !Array.isArray(hit.vals)) return { label: name, vals: dash() };
-    const vals = hit.vals.map(stripMiniMarkdownCell);
+    const vals = hit.vals.map((v) => String(v ?? "").trim());
     while (vals.length < columnCount) vals.push("—");
-    return { label: name, vals: vals.slice(0, columnCount) };
+    const displayLabel = hit.label?.trim() ? hit.label.trim() : name;
+    return { label: displayLabel, vals: vals.slice(0, columnCount) };
   });
 }
 
-/** @param {2 | 3} columnCount */
-export function emptyMiniDisplayRows(columnCount = 3) {
+/** @param {2 | 3} columnCount @param {string[]} rowOrder */
+export function emptyMiniDisplayRows(columnCount = 3, rowOrder) {
+  const order = rowOrder?.length ? rowOrder : ["Opening", "Tone", "Length", "Structure", "Factuality", "Closing"];
   const dash = Array.from({ length: columnCount }, () => "—");
-  return MINI_VERGLEICH_ROW_ORDER.map((name) => ({ label: name, vals: [...dash] }));
+  return order.map((name) => ({ label: name, vals: [...dash] }));
 }
 
-/** Minivergleich auch nach Einordnung oder mit ##-Überschrift; Fallback: passende Zeilen im ganzen Text. @param {2 | 3} columnCount */
-export function parseDiffSections(raw, columnCount = 3) {
-  const full = String(raw || "").trim();
-  if (!full) return { einordnung: "", miniRows: [] };
+/**
+ * @param {string} raw
+ * @param {2 | 3} columnCount
+ * @param {{ miniSectionTitles?: string[], assessmentSectionTitles?: string[], rowOrder?: string[] }} diffParsing from locale catalog
+ */
+export function parseDiffSections(raw, columnCount = 3, diffParsing = {}) {
+  const miniSectionTitles = diffParsing.miniSectionTitles || [];
+  const assessmentSectionTitles = diffParsing.assessmentSectionTitles || [];
+  const rowOrder = diffParsing.rowOrder?.length
+    ? diffParsing.rowOrder
+    : ["Opening", "Tone", "Length", "Structure", "Factuality", "Closing"];
 
-  const miniTitles = ["Minivergleich", "Mini-Vergleich", "Mini Vergleich", "Minivergleich (Kurz)", "Kurzvergleich"];
+  const full = String(raw || "").trim();
+  if (!full) return { assessment: "", miniRows: [] };
+
   let miniBlock = "";
-  for (const title of miniTitles) {
+  for (const title of miniSectionTitles) {
     const b = extractMarkdownSection(full, title);
     if (b) {
       miniBlock = b;
@@ -143,12 +202,24 @@ export function parseDiffSections(raw, columnCount = 3) {
     }
   }
 
-  let einordnung = extractMarkdownSection(full, "Einordnung");
-  if (!einordnung) {
-    const einSplit = full.split(/\r?\n###\s*Einordnung\s*\r?\n/i);
-    einordnung = einSplit.length >= 2 ? einSplit.slice(1).join("\n").trim() : "";
+  let assessment = "";
+  for (const title of assessmentSectionTitles) {
+    const b = extractMarkdownSection(full, title);
+    if (b) {
+      assessment = b;
+      break;
+    }
   }
-  if (!einordnung) einordnung = full;
+  if (!assessment) {
+    for (const title of assessmentSectionTitles) {
+      const einSplit = full.split(new RegExp(`\\r?\\n###\\s*${escapeRegExp(title)}\\s*\\r?\\n`, "i"));
+      if (einSplit.length >= 2) {
+        assessment = einSplit.slice(1).join("\n").trim();
+        break;
+      }
+    }
+  }
+  if (!assessment) assessment = full;
 
   let miniRows = parseMinivergleichLines(miniBlock, columnCount);
   if (miniRows.length === 0) {
@@ -158,10 +229,10 @@ export function parseDiffSections(raw, columnCount = 3) {
       const row = parseOneMinivergleichLine(line, columnCount);
       if (row) miniRows.push(row);
     }
-    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount);
+    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount, rowOrder);
   } else {
-    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount);
+    miniRows = normalizeMiniComparisonRows(dedupeMiniRows(miniRows), columnCount, rowOrder);
   }
 
-  return { einordnung, miniRows };
+  return { assessment, miniRows };
 }

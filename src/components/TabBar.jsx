@@ -1,46 +1,39 @@
-import { TABS } from "../constants/appConfig.js";
-import { shadow } from "../theme/tokens.js";
+import { TAB_KEYS } from "../constants/appConfig.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
+import { IconTabDifferences, IconTabPerformance, IconTabResults } from "./tabIcons.jsx";
 
-export function TabBar({ active, onChange, diffReady, perfReady }) {
+function TabLeadingIcon({ tabKey }) {
+  if (tabKey === "results") return <IconTabResults style={{ flexShrink: 0, opacity: 0.92 }} />;
+  if (tabKey === "diff") return <IconTabDifferences style={{ flexShrink: 0, opacity: 0.92 }} />;
+  if (tabKey === "perf") return <IconTabPerformance style={{ flexShrink: 0, opacity: 0.92 }} />;
+  return null;
+}
+
+export function TabBar({ active, onChange, diffReady, perfReady, variant = "default" }) {
+  const { t } = useI18n();
+  const railClass =
+    variant === "inline" ? "aidiff-glass-tab-rail aidiff-glass-tab-rail--inline aidiff-run-card-head__rail" : "aidiff-glass-tab-rail";
+
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        gap: 2,
-        padding: "3px",
-        background: "var(--bg2)",
-        borderRadius: 10,
-        marginBottom: 12,
-      }}
-    >
-      {TABS.map((t) => {
-        const disabled = (t.key === "diff" && !diffReady) || (t.key === "perf" && !perfReady);
-        const isActive = active === t.key;
+    <div className={railClass}>
+      {TAB_KEYS.map((tab) => {
+        const disabled = (tab.key === "diff" && !diffReady) || (tab.key === "perf" && !perfReady);
+        const isActive = active === tab.key;
+        const btnClass = variant === "inline" ? "aidiff-glass-control aidiff-run-card-head__tabCtrl" : "aidiff-glass-tab";
         return (
           <button
-            key={t.key}
-            onClick={() => !disabled && onChange(t.key)}
-            style={{
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: isActive ? 500 : 400,
-              padding: "5px 12px",
-              border: "none",
-              borderRadius: 7,
-              cursor: disabled ? "default" : "pointer",
-              background: isActive ? "var(--bg)" : "transparent",
-              color: disabled ? "var(--t3)" : isActive ? "var(--text)" : "var(--t2)",
-              boxShadow: isActive ? shadow.tabActive : "none",
-              transition: "all 0.12s",
-            }}
-            onMouseEnter={(e) => {
-              if (!disabled && !isActive) e.currentTarget.style.color = "var(--text)";
-            }}
-            onMouseLeave={(e) => {
-              if (!disabled && !isActive) e.currentTarget.style.color = "var(--t2)";
+            key={tab.key}
+            type="button"
+            className={btnClass}
+            data-on={isActive ? "true" : undefined}
+            disabled={disabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!disabled) onChange(tab.key);
             }}
           >
-            {t.label}
+            <TabLeadingIcon tabKey={tab.key} />
+            {t(`tabs.${tab.key}`)}
           </button>
         );
       })}

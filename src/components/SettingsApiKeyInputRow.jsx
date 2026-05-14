@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { formatApiKeyPeek } from "../lib/formatApiKeyPeek.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
 
 export function SettingsApiKeyInputRow({ pv, value, disabled, isEditing, onStartEdit, onEndEdit, onChange }) {
+  const { t } = useI18n();
   const raw = String(value ?? "");
   const hasSecret = raw.length > 0;
   const peekOnly = hasSecret && !isEditing;
@@ -40,7 +42,7 @@ export function SettingsApiKeyInputRow({ pv, value, disabled, isEditing, onStart
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} aria-hidden />
-          <span>{labelText} API-Schlüssel</span>
+          <span>{t("settings.apiKeyLabel", { provider: labelText })}</span>
         </span>
       </label>
       <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
@@ -64,7 +66,7 @@ export function SettingsApiKeyInputRow({ pv, value, disabled, isEditing, onStart
             if (isEditing) onEndEdit(pv.key);
           }}
           onChange={(e) => onChange(pv.key, e.target.value)}
-          placeholder={`${labelText}-Schlüssel einfügen`}
+          placeholder={t("settings.apiKeyPlaceholder", { provider: labelText })}
           style={{
             flex: 1,
             minWidth: 0,
@@ -86,31 +88,11 @@ export function SettingsApiKeyInputRow({ pv, value, disabled, isEditing, onStart
         {hasSecret && !isEditing && !disabled ? (
           <button
             type="button"
-            aria-label={`${labelText}-API-Schlüssel bearbeiten`}
-            title="Bearbeiten"
+            aria-label={t("settings.apiKeyEditAria", { provider: labelText })}
+            title={t("settings.editTitle")}
             onClick={() => onStartEdit(pv.key)}
-            style={{
-              flexShrink: 0,
-              width: 36,
-              height: 36,
-              padding: 0,
-              borderRadius: 8,
-              border: "1px solid var(--modal-secondary-border)",
-              background: "transparent",
-              color: "var(--t2)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--modal-secondary-hover)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--t2)";
-            }}
+            className="aidiff-glass-control aidiff-glass-control--icon"
+            style={{ flexShrink: 0 }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M12 20h9" />

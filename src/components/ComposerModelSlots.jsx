@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
 import { PROVIDERS } from "../constants/appConfig.js";
+import { firstProviderWithApiKey } from "../lib/modelUtils.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
 import { SearchableSlotPicker } from "./SearchableSlotPicker.jsx";
 
-const THIRD_PLACEHOLDER = "Drittes Modell wählen…";
-const THIRD_LIST_HINT = "Wähle ein Modell für die dritte Spalte — oder schließe ohne Auswahl (Esc / Klick außerhalb).";
-
-/** Zwei oder drei Modellspalten; „+“ öffnet Auswahl, ohne Wahl zurück zum Plus. */
-export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions, listsLoading }) {
+/** Two or three model columns; “+” opens picker, dismiss returns to plus. */
+export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions, listsLoading, apiKeysCommitted }) {
+  const { t } = useI18n();
   const n = compareSlots.length;
   const [thirdDraft, setThirdDraft] = useState(null);
 
@@ -23,7 +23,8 @@ export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions
 
   function startAddThird() {
     if (n >= 3 || thirdDraft) return;
-    setThirdDraft({ providerKey: PROVIDERS[0].key, modelValue: "" });
+    const first = firstProviderWithApiKey(apiKeysCommitted ?? {});
+    setThirdDraft({ providerKey: first?.key ?? PROVIDERS[0].key, modelValue: "" });
   }
 
   return (
@@ -31,25 +32,7 @@ export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions
       {compareSlots.map((slot, i) => {
         const pos = i === 0 ? "first" : i === n - 1 && n === 3 ? "last" : "middle";
         return (
-          <div
-            key={i}
-            className="composer-model-col"
-            style={i === n - 1 && n === 3 ? { borderRight: "none" } : undefined}
-          >
-            {n > 2 && (
-              <button
-                type="button"
-                className="composer-model-remove"
-                aria-label="Spalte entfernen"
-                title="Spalte entfernen"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeSlot(i);
-                }}
-              >
-                ×
-              </button>
-            )}
+          <div key={i} className="composer-model-col" style={i === n - 1 && n === 3 ? { borderRight: "none" } : undefined}>
             <SearchableSlotPicker
               slotIndex={i}
               providerKey={slot.providerKey}
@@ -63,7 +46,11 @@ export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions
               }}
               modelOptions={modelOptions}
               listsLoading={listsLoading}
+              apiKeysCommitted={apiKeysCommitted}
               position={pos}
+              onRemoveColumn={n > 2 ? () => removeSlot(i) : undefined}
+              removeColumnAriaLabel={t("composerModelSlots.removeColumn")}
+              removeColumnTitle={t("composerModelSlots.removeColumnTitle")}
             />
           </div>
         );
@@ -86,17 +73,17 @@ export function ComposerModelSlots({ compareSlots, setCompareSlots, modelOptions
               }}
               modelOptions={modelOptions}
               listsLoading={listsLoading}
+              apiKeysCommitted={apiKeysCommitted}
               position="last"
-              emptyPlaceholder={THIRD_PLACEHOLDER}
-              listHint={THIRD_LIST_HINT}
+              emptyPlaceholder={t("composerModelSlots.thirdPlaceholder")}
               defaultOpen
               onOpenChange={handleThirdOpenChange}
             />
           ) : (
             <button
               type="button"
-              aria-label="Drittes Modell hinzufügen"
-              title="Drittes Modell"
+              aria-label={t("composerModelSlots.addThirdAria")}
+              title={t("composerModelSlots.addThirdTitle")}
               onClick={(e) => {
                 e.stopPropagation();
                 startAddThird();

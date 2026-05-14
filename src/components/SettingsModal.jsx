@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { modalBackdrop, shadow, zIndex } from "../theme/tokens.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
+import { modalBackdrop, zIndex } from "../theme/tokens.js";
 import { SettingsApiKeyInputRow } from "./SettingsApiKeyInputRow.jsx";
 
 export function SettingsModal({
   open,
   onClose,
-  isDark,
   modalRef,
   settingsKeysError,
   settingsKeysLoading,
@@ -13,7 +13,9 @@ export function SettingsModal({
   apiKeysDraft,
   setApiKeysDraft,
   onSave,
+  gateMode = false,
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const [editingKey, setEditingKey] = useState(null);
   const editingKeyRef = useRef(null);
@@ -66,25 +68,23 @@ export function SettingsModal({
 
   if (!open) return null;
 
-  const dialogShadow = isDark ? shadow.settingsModalDark : shadow.settingsModalLight;
-
   return (
     <div
-      className="aidiff-settings-overlay"
+      className="aidiff-settings-overlay aidiff-glass-overlay"
       style={{
         position: "fixed",
         inset: 0,
         zIndex: zIndex.modal,
-        background: modalBackdrop(isDark),
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
+        background: modalBackdrop(),
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
         pointerEvents: "auto",
       }}
-      onClick={onClose}
+      onClick={(e) => {
+        if (!gateMode) onClose();
+      }}
       role="presentation"
     >
       <div
@@ -93,18 +93,13 @@ export function SettingsModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="aidiff-settings-dialog"
+        className="aidiff-settings-dialog aidiff-glass-dialog"
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "relative",
           width: "100%",
           maxWidth: 448,
           minWidth: 0,
-          borderRadius: 16,
-          border: "1px solid var(--border2)",
-          background: "var(--bg)",
-          boxShadow: dialogShadow,
-          color: "var(--text)",
           textAlign: "left",
           outline: "none",
           pointerEvents: "auto",
@@ -147,43 +142,38 @@ export function SettingsModal({
                 fontFamily: "inherit",
               }}
             >
-              Einstellungen
+              {gateMode ? t("settings.gateTitle") : t("settings.title")}
             </h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <button
-                type="button"
-                aria-label="Schließen"
-                onClick={onClose}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 36,
-                  height: 36,
-                  margin: -6,
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  background: "transparent",
-                  color: "var(--t3)",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--bg2)";
-                  e.currentTarget.style.color = "var(--text)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--t3)";
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+            {!gateMode ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  aria-label={t("settings.close")}
+                  onClick={onClose}
+                  className="aidiff-glass-control aidiff-glass-control--icon"
+                  style={{ margin: -6 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ) : null}
           </div>
+
+          {gateMode ? (
+            <p
+              style={{
+                margin: "0 0 4px",
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: "var(--t2)",
+              }}
+            >
+              {t("settings.gateSubtitle")}
+            </p>
+          ) : null}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 4 }}>
             {settingsKeysError ? (
@@ -203,7 +193,7 @@ export function SettingsModal({
               </div>
             ) : null}
             {settingsKeysLoading ? (
-              <div style={{ fontSize: 13, color: "var(--t3)", paddingTop: 2 }}>Lade Keys aus .env …</div>
+              <div style={{ fontSize: 13, color: "var(--t3)", paddingTop: 2 }}>{t("settings.loadingKeys")}</div>
             ) : null}
 
             {providerSettingRows.map((pv) => (
@@ -230,59 +220,13 @@ export function SettingsModal({
               gap: 8,
             }}
           >
-            <button
-              type="button"
-              onClick={onClose}
-              className="aidiff-settings-btn-secondary"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: "5rem",
-                height: 36,
-                padding: "0 16px",
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                color: "var(--text)",
-                background: "transparent",
-                border: "1px solid var(--modal-secondary-border)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--modal-secondary-hover)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              disabled={settingsKeysLoading}
-              className="aidiff-settings-btn-primary"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: "5rem",
-                height: 36,
-                padding: "0 16px",
-                border: "none",
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                cursor: settingsKeysLoading ? "not-allowed" : "pointer",
-                color: "var(--bg)",
-                background: "var(--text)",
-                opacity: settingsKeysLoading ? 0.5 : 1,
-                pointerEvents: settingsKeysLoading ? "none" : "auto",
-              }}
-            >
-              Speichern
+            {!gateMode ? (
+              <button type="button" onClick={onClose} className="aidiff-settings-btn-secondary aidiff-glass-btn-secondary">
+                {t("settings.cancel")}
+              </button>
+            ) : null}
+            <button type="submit" disabled={settingsKeysLoading} className="aidiff-settings-btn-primary aidiff-glass-btn-primary">
+              {gateMode ? t("settings.gateSave") : t("settings.save")}
             </button>
           </div>
         </form>

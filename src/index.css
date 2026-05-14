@@ -8,10 +8,722 @@ body {
   margin: 0;
 }
 
+/* Liquid glass — Variablen: `theme/glass.css`; Namen: `theme/glassTokens.js` */
+.aidiff-liquid-glass {
+  position: relative;
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow);
+  transition: var(--glass-transition), backdrop-filter 0.22s ease;
+  border-radius: 20px;
+}
+
+.aidiff-liquid-glass:hover {
+  background: var(--glass-fill-hover);
+  backdrop-filter: var(--glass-blur-hover);
+  -webkit-backdrop-filter: var(--glass-blur-hover);
+  box-shadow: var(--glass-shadow-hover);
+  border-color: var(--glass-stroke-hover);
+}
+
+.aidiff-liquid-glass:focus-within {
+  box-shadow: var(--glass-shadow-focus);
+  border-color: var(--glass-stroke-focus);
+}
+
+.aidiff-liquid-glass--r16 {
+  border-radius: 16px;
+}
+
+.aidiff-liquid-glass--r14 {
+  border-radius: 14px;
+}
+
+.aidiff-liquid-glass--r12 {
+  border-radius: 12px;
+}
+
+.aidiff-liquid-glass--clip {
+  overflow: hidden;
+}
+
+/* Composer: eine Glas-Karte; overflow sichtbar für nach oben portaliertes Dropdown */
+.aidiff-liquid-glass--composer-root {
+  overflow: visible;
+}
+
+/* Obere Modellzeile: keine zweite Fläche — nur Trennlinie, gleiche Frost-Schicht wie der Rest */
+.aidiff-composer-slots-strip {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  border-radius: 20px 20px 0 0;
+  border-bottom: 1px solid var(--glass-inner-border);
+}
+
+/* Kopf in nested liquid-glass (Resultat-/Perf-Spalten): nur Linie, eine Frost-Schicht vom Parent */
+.aidiff-liquid-glass-head {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--glass-inner-border);
+}
+
+.aidiff-glass-inner-surface {
+  background: var(--glass-inner-bg);
+  border: 1px solid var(--glass-inner-border);
+  box-shadow: var(--glass-inner-inset);
+}
+
+.aidiff-glass-inner-header {
+  background: var(--glass-inner-header-bg);
+  border-bottom: 1px solid var(--glass-inner-border);
+}
+
+/* Run-Karte: Kopfzeile zugeklappt/aufgeklappt gleiche Mindesthöhe (kein vertikaler Sprung) */
+.aidiff-run-card-head {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 12px 16px;
+}
+
+/* Icon + Prompt: immer gleiche innere Flex-Struktur, unabhängig von Tabs/Punkten */
+.aidiff-run-card-head__lead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Rechts: Tabs und Punkt-Gruppe gleiche Mindestbreite → Prompt ellipsiert an derselben Stelle */
+.aidiff-run-card-head__rail {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-width: min(272px, 100%);
+  box-sizing: border-box;
+}
+
+.aidiff-run-card-head__rail--dots {
+  gap: 5px;
+}
+
+/* Chevron: gleiche Box zugeklappt/aufgeklappt */
+.aidiff-run-card-head__chevronSlot {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.aidiff-run-card-head__chevronBtn {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.aidiff-glass-tab-rail {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Run-Karte: Tabs in einer Zeile mit Prompt (Platz der Punkte im zugeklappten Zustand) */
+.aidiff-glass-tab-rail--inline {
+  margin-bottom: 0;
+  padding: 0;
+  border-radius: 6px;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Spaltenköpfe in RunEntry (Resultate / Performance / Diff): gleiche Mindesthöhe, kein Sprung beim Tab-Wechsel */
+.aidiff-run-entry-col-head {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+/* Icon- / Toolbar-Buttons (Einstellungen, Anhang, Modal-X, …) */
+.aidiff-glass-control {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  border: 1px solid var(--glass-control-border);
+  background: var(--glass-control-bg);
+  backdrop-filter: var(--glass-control-blur);
+  -webkit-backdrop-filter: var(--glass-control-blur);
+  box-shadow: var(--glass-control-shadow);
+  border-radius: var(--glass-control-radius);
+  color: var(--glass-control-color);
+  cursor: pointer;
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-control:hover:not(:disabled) {
+  background: var(--glass-control-bg-hover);
+  border-color: var(--glass-control-border-hover);
+  color: var(--glass-control-color-hover);
+  box-shadow: var(--glass-control-shadow-hover);
+}
+
+.aidiff-glass-control:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.aidiff-glass-control--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+/* Modell-Slot: Zeile mit optionalem × — × nur bei Hover (Maus), Chevron sonst ganz rechts; Touch: × immer sichtbar */
+.aidiff-glass-slot-trigger-row {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  border-radius: inherit;
+}
+
+.aidiff-glass-slot-trigger-row > .aidiff-glass-slot-trigger {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.aidiff-glass-slot-trigger-row--closable .aidiff-glass-slot-trigger {
+  padding-right: 34px;
+  transition: padding-right 0.14s ease;
+}
+
+.aidiff-glass-slot-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-left: 1px solid var(--glass-inner-border);
+  border-top-right-radius: inherit;
+  border-bottom-right-radius: inherit;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 0;
+  line-height: 0;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.aidiff-glass-slot-remove svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.aidiff-glass-slot-remove:hover {
+  color: var(--text);
+  background: var(--glass-slot-trigger-hover-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aidiff-glass-slot-trigger-row--closable .aidiff-glass-slot-trigger {
+    padding-right: 14px;
+  }
+
+  .aidiff-glass-slot-trigger-row--closable:hover .aidiff-glass-slot-trigger,
+  .aidiff-glass-slot-trigger-row--closable:focus-within .aidiff-glass-slot-trigger {
+    padding-right: 34px;
+  }
+
+  .aidiff-glass-slot-trigger-row--closable .aidiff-glass-slot-remove {
+    opacity: 0;
+    pointer-events: none;
+    border-left-color: transparent;
+  }
+
+  .aidiff-glass-slot-trigger-row--closable:hover .aidiff-glass-slot-remove,
+  .aidiff-glass-slot-trigger-row--closable:focus-within .aidiff-glass-slot-remove {
+    opacity: 1;
+    pointer-events: auto;
+    border-left-color: var(--glass-inner-border);
+  }
+}
+
+/* Modell-Slot Trigger (Composer-Zeile) */
+.aidiff-glass-slot-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--glass-transition), background 0.2s ease;
+  border-radius: inherit;
+}
+
+.aidiff-glass-slot-trigger:hover {
+  background: var(--glass-slot-trigger-hover-bg);
+}
+
+.aidiff-glass-slot-trigger-row:hover .aidiff-glass-slot-trigger {
+  background: var(--glass-slot-trigger-hover-bg);
+}
+
+/* Modell-Dropdown: gleiche Glas-Oberfläche wie Composer (.aidiff-liquid-glass), nur Layout */
+.aidiff-glass-dropdown-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.aidiff-glass-dropdown__meta {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 9px;
+  color: var(--t3);
+  border-bottom: 1px solid var(--glass-inner-border);
+  background: var(--glass-dropdown-header-bg);
+}
+
+.aidiff-glass-dropdown__hint {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--t3);
+  border-bottom: 1px solid var(--glass-inner-border);
+  background: var(--glass-dropdown-hint-bg);
+}
+
+.aidiff-glass-dropdown__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aidiff-glass-dropdown__empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.aidiff-glass-dropdown__row {
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.aidiff-glass-dropdown__row:hover {
+  background: var(--glass-dropdown-row-hover);
+}
+
+.aidiff-glass-dropdown__row[data-active="true"] {
+  background: var(--glass-dropdown-row-active);
+}
+
+.aidiff-glass-dropdown__tabs {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 8px 6px;
+  border-top: 1px solid var(--glass-inner-border);
+  background: var(--glass-dropdown-tabs-bg);
+}
+
+.aidiff-glass-dropdown__tab {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 3px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--glass-control-border);
+  cursor: pointer;
+  background: var(--glass-control-bg);
+  color: var(--t2);
+  backdrop-filter: var(--glass-control-blur);
+  -webkit-backdrop-filter: var(--glass-control-blur);
+  box-shadow: var(--glass-control-shadow);
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-dropdown__tab:hover {
+  background: var(--glass-control-bg-hover);
+  border-color: var(--glass-control-border-hover);
+  color: var(--glass-control-color-hover);
+  box-shadow: var(--glass-control-shadow-hover);
+}
+
+.aidiff-glass-dropdown__tab[data-on="true"] {
+  background: var(--glass-control-bg-active);
+  border-color: var(--glass-selected-border);
+  color: var(--text);
+  box-shadow: var(--glass-selected-shadow);
+}
+
+.aidiff-glass-dropdown__tab:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  color: var(--t3);
+}
+
+.aidiff-glass-dropdown__tab:disabled:hover {
+  background: var(--glass-control-bg);
+  border-color: var(--glass-control-border);
+  color: var(--t3);
+  box-shadow: var(--glass-control-shadow);
+}
+
+.aidiff-glass-dropdown__search-wrap {
+  flex-shrink: 0;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--glass-inner-border);
+  background: var(--glass-dropdown-hint-bg);
+}
+
+.aidiff-glass-dropdown__search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-dropdown-search-border);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: var(--glass-dropdown-search-bg);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.aidiff-glass-dropdown__search:hover:not(:disabled) {
+  border-color: var(--modal-input-border-hover);
+}
+
+.aidiff-glass-dropdown__search:focus {
+  border-color: var(--modal-input-border-focus);
+  box-shadow: 0 0 0 2px var(--modal-input-ring);
+}
+
+/* Modal-Overlay + Dialog */
+.aidiff-glass-overlay {
+  backdrop-filter: var(--glass-overlay-blur);
+  -webkit-backdrop-filter: var(--glass-overlay-blur);
+}
+
+.aidiff-glass-dialog {
+  border-radius: 16px;
+  border: 1px solid var(--glass-dialog-stroke);
+  background: var(--glass-dialog-fill);
+  backdrop-filter: var(--glass-dialog-blur);
+  -webkit-backdrop-filter: var(--glass-dialog-blur);
+  box-shadow: var(--glass-dialog-shadow);
+  color: var(--text);
+}
+
+/* Datei-Chip */
+.aidiff-glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--t2);
+  border-radius: 6px;
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  transition: var(--glass-transition), backdrop-filter 0.2s ease;
+}
+
+.aidiff-glass-chip:hover {
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-stroke-hover);
+  box-shadow: var(--glass-shadow-hover);
+  backdrop-filter: var(--glass-blur-hover);
+  -webkit-backdrop-filter: var(--glass-blur-hover);
+}
+
+.aidiff-glass-chip__remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.aidiff-glass-chip__remove:hover {
+  color: var(--text);
+  background: var(--glass-dropdown-row-hover);
+}
+
+/* Toolbar-Pille (z. B. Meta-Analyse) */
+.aidiff-glass-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--glass-pill-stroke);
+  background: var(--glass-pill-bg);
+  backdrop-filter: var(--glass-pill-blur);
+  -webkit-backdrop-filter: var(--glass-pill-blur);
+  box-shadow: var(--glass-control-shadow);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--t2);
+  font-size: 12px;
+  font-family: inherit;
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-pill:hover {
+  background: var(--glass-pill-bg-hover);
+  border-color: var(--glass-pill-stroke-hover);
+  color: var(--text);
+  box-shadow: var(--glass-control-shadow-hover);
+}
+
+.aidiff-glass-pill[data-on="true"] {
+  background: var(--glass-pill-bg-on);
+  border-color: var(--glass-selected-border);
+  color: var(--text);
+  box-shadow: var(--glass-selected-shadow);
+}
+
+/* Senden */
+.aidiff-glass-send {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-control-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--glass-transition), transform 0.18s ease, filter 0.18s ease;
+  background: var(--glass-send-bg);
+  color: var(--glass-send-color);
+  box-shadow: var(--glass-send-shadow);
+}
+
+.aidiff-glass-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: var(--glass-send-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.aidiff-glass-send:disabled {
+  background: var(--glass-send-bg-disabled);
+  color: var(--glass-send-color-disabled);
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Perf-Metrik-Kachel */
+.aidiff-glass-metric {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-metric-border);
+  background: var(--glass-metric-bg);
+  backdrop-filter: var(--glass-blur-soft);
+  -webkit-backdrop-filter: var(--glass-blur-soft);
+  box-shadow: var(--glass-inner-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.aidiff-glass-metric--best {
+  background: var(--glass-metric-best-bg);
+  border-color: var(--glass-metric-best-border);
+}
+
+/* Tab-Leiste: Control-Stil, flach wie Tab-Bar; gleiche font-weight in allen Zuständen (kein Layout-Sprung) */
+.aidiff-glass-tab {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 0;
+  padding: 4px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--glass-control-border);
+  cursor: pointer;
+  background: var(--glass-control-bg);
+  color: var(--t2);
+  backdrop-filter: var(--glass-control-blur);
+  -webkit-backdrop-filter: var(--glass-control-blur);
+  box-shadow: var(--glass-control-shadow);
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-tab:hover:not(:disabled) {
+  background: var(--glass-control-bg-hover);
+  border-color: var(--glass-control-border-hover);
+  color: var(--glass-control-color-hover);
+  box-shadow: var(--glass-control-shadow-hover);
+}
+
+.aidiff-glass-tab:disabled {
+  opacity: 0.45;
+  cursor: default;
+  color: var(--t3);
+}
+
+.aidiff-glass-tab[data-on="true"] {
+  background: var(--glass-control-bg-active);
+  border-color: var(--glass-selected-border);
+  color: var(--text);
+  box-shadow: var(--glass-selected-shadow);
+}
+
+.aidiff-run-card-head .aidiff-run-card-head__tabCtrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  min-height: 28px;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.aidiff-run-card-head .aidiff-glass-control[data-on="true"] {
+  background: var(--glass-control-bg-active);
+  border-color: var(--glass-selected-border);
+  color: var(--text);
+  box-shadow: var(--glass-selected-shadow);
+}
+
+/* Einstellungen: sekundär / primär */
+.aidiff-glass-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5rem;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+  border: 1px solid var(--modal-secondary-border);
+  background: var(--glass-control-bg);
+  backdrop-filter: var(--glass-control-blur);
+  -webkit-backdrop-filter: var(--glass-control-blur);
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-btn-secondary:hover {
+  background: var(--glass-control-bg-hover);
+  border-color: var(--glass-control-border-hover);
+  box-shadow: var(--glass-control-shadow-hover);
+}
+
+.aidiff-glass-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5rem;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--glass-control-border-hover);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--glass-send-color);
+  background: var(--glass-send-bg);
+  box-shadow: var(--glass-send-shadow);
+  transition: var(--glass-transition);
+}
+
+.aidiff-glass-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.aidiff-glass-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .composer-model-row {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-composer-divider);
 }
 
 .composer-model-col {
@@ -19,33 +731,7 @@ body {
   min-width: 0;
   display: flex;
   position: relative;
-  border-right: 1px solid var(--border);
-}
-
-.composer-model-remove {
-  position: absolute;
-  top: 5px;
-  right: 4px;
-  z-index: 4;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: 7px;
-  background: var(--bg2);
-  color: var(--t3);
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  font-family: inherit;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.composer-model-remove:hover {
-  color: var(--text);
-  background: var(--bg3);
+  border-right: 1px solid var(--glass-composer-divider);
 }
 
 .composer-model-plusWrap {
@@ -64,17 +750,68 @@ body {
 .composer-model-plusBtn {
   width: 100%;
   border: none;
-  border-radius: 0 19px 0 0;
+  border-radius: 0 20px 0 0;
   background: transparent;
   color: var(--t3);
   cursor: pointer;
   font-family: inherit;
   font-size: 22px;
   font-weight: 300;
-  transition: background 0.1s, color 0.1s;
+  transition: var(--glass-transition);
 }
 
 .composer-model-plusBtn:hover {
-  background: var(--bg2);
+  background: var(--glass-slot-trigger-hover-bg);
   color: var(--text);
+}
+
+/* Diff Assessment + Mini-Tabelle: Textmarker nach Antwort-Spalte */
+.aidiff-assessment-mark {
+  font-weight: 650;
+  border-radius: 4px;
+  padding: 0.06em 0.28em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.aidiff-assessment-mark--s1 {
+  background: rgba(250, 204, 21, 0.42);
+  box-shadow: inset 0 -0.12em 0 rgba(234, 179, 8, 0.35);
+}
+
+.aidiff-assessment-mark--s2 {
+  background: rgba(52, 211, 153, 0.38);
+  box-shadow: inset 0 -0.12em 0 rgba(16, 185, 129, 0.28);
+}
+
+.aidiff-assessment-mark--s3 {
+  background: rgba(167, 139, 250, 0.42);
+  box-shadow: inset 0 -0.12em 0 rgba(139, 92, 246, 0.28);
+}
+
+.aidiff-assessment-mark--neutral {
+  background: rgba(156, 163, 175, 0.28);
+  box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .aidiff-assessment-mark--s1 {
+    background: rgba(250, 204, 21, 0.2);
+    box-shadow: inset 0 -0.12em 0 rgba(250, 204, 21, 0.15);
+  }
+
+  .aidiff-assessment-mark--s2 {
+    background: rgba(52, 211, 153, 0.18);
+    box-shadow: inset 0 -0.12em 0 rgba(52, 211, 153, 0.12);
+  }
+
+  .aidiff-assessment-mark--s3 {
+    background: rgba(167, 139, 250, 0.22);
+    box-shadow: inset 0 -0.12em 0 rgba(167, 139, 250, 0.14);
+  }
+
+  .aidiff-assessment-mark--neutral {
+    background: rgba(156, 163, 175, 0.14);
+    box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.12);
+  }
 }

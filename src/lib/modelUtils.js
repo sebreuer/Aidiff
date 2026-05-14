@@ -1,9 +1,4 @@
-import {
-  PROVIDERS,
-  SLOT_INDICES,
-  MODEL_PRICING,
-  AIDIFF_USE_MOCK,
-} from "../constants/appConfig.js";
+import { PROVIDERS, SLOT_INDICES, MODEL_PRICING } from "../constants/appConfig.js";
 
 export function defaultModelOptions() {
   return Object.fromEntries(PROVIDERS.map((p) => [p.key, p.models.map((m) => ({ label: m.label, value: m.value }))]));
@@ -20,25 +15,18 @@ export function getProvider(providerKey) {
 }
 
 export function defaultCompareSlots() {
-  if (AIDIFF_USE_MOCK) {
-    return [
-      { providerKey: "gemini", modelValue: "gemini-2.5-flash" },
-      { providerKey: "gemini", modelValue: "gemini-2.5-flash-lite" },
-      { providerKey: "gemini", modelValue: "gemini-3.1-flash-lite" },
-    ];
-  }
   return SLOT_INDICES.map((i) => ({
     providerKey: PROVIDERS[i].key,
     modelValue: PROVIDERS[i].models[0].value,
   }));
 }
 
-/** Standard-Composer: zwei Spalten. */
+/** Default composer: two columns. */
 export function defaultCompareSlotsTwo() {
   return defaultCompareSlots().slice(0, 2);
 }
 
-/** Dritte Spalte beim „+“ (drittes Mock-Modell bzw. dritter Anbieter). */
+/** Third column via “+” (third provider / default model). */
 export function defaultExtraCompareSlot() {
   const all = defaultCompareSlots();
   return all[2] ? { ...all[2] } : { providerKey: PROVIDERS[2].key, modelValue: PROVIDERS[2].models[0].value };
@@ -67,6 +55,38 @@ export function runActiveSlotCount(run) {
 /** @param {{ usedThirdSlot?: boolean } | undefined} run */
 export function getActiveSlotIndices(run) {
   return runActiveSlotCount(run) === 2 ? [0, 1] : [0, 1, 2];
+}
+
+/** @param {{ claude?: string, gemini?: string, gpt?: string }} draft */
+export function apiKeyAllowsProvider(draft, providerKey) {
+  return String(draft?.[providerKey] ?? "").trim().length > 0;
+}
+
+/** First provider that has a non-empty API key in `draft`, or `null` if none. */
+export function firstProviderWithApiKey(draft) {
+  for (const p of PROVIDERS) {
+    if (apiKeyAllowsProvider(draft, p.key)) return p;
+  }
+  return null;
+}
+
+/**
+ * If a slot uses a provider without a configured key, move it to the first provider that has a key.
+ * @param {{ providerKey: string, modelValue: string }[]} slots
+ * @param {{ claude?: string, gemini?: string, gpt?: string }} apiKeysDraft
+ */
+export function migrateCompareSlotsForApiKeys(slots, apiKeysDraft, modelOptions) {
+  const first = firstProviderWithApiKey(apiKeysDraft);
+  if (!first) return slots;
+  let changed = false;
+  const next = slots.map((slot) => {
+    if (apiKeyAllowsProvider(apiKeysDraft, slot.providerKey)) return slot;
+    changed = true;
+    const opts = modelOptions[first.key];
+    const mv = opts?.[0]?.value ?? first.models[0].value;
+    return { providerKey: first.key, modelValue: mv };
+  });
+  return changed ? next : slots;
 }
 
 export function buildUnifiedModelEntries(modelOptions) {

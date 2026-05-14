@@ -1,22 +1,11 @@
-import { BEST_BG, BEST_COLOR } from "../theme/tokens.js";
-
 export function PerfMetric({ label, value, isBest, subtext }) {
+  const accent = "var(--glass-metric-best-accent)";
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        background: isBest ? BEST_BG : "transparent",
-        borderRadius: 8,
-        border: isBest ? "1px solid rgba(0,112,243,0.15)" : "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-      }}
-    >
+    <div className={`aidiff-glass-metric${isBest ? " aidiff-glass-metric--best" : ""}`}>
       <span
         style={{
           fontSize: 10,
-          color: isBest ? BEST_COLOR : "var(--t3)",
+          color: isBest ? accent : "var(--t3)",
           textTransform: "uppercase",
           letterSpacing: "0.07em",
           fontWeight: 500,
@@ -29,7 +18,7 @@ export function PerfMetric({ label, value, isBest, subtext }) {
           fontSize: 20,
           fontWeight: 600,
           letterSpacing: "-0.02em",
-          color: isBest ? BEST_COLOR : "var(--text)",
+          color: isBest ? accent : "var(--text)",
           lineHeight: 1,
         }}
       >

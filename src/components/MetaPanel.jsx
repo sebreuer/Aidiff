@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { META_SYSTEM } from "../constants/appConfig.js";
+import { metaSystemPrompt } from "../i18n/prompts.js";
 import { callAnthropicAPI } from "../lib/api.js";
 import { calcCost, defaultCompareSlots, getActiveSlotIndices, resolveModelLabel } from "../lib/modelUtils.js";
 import { renderText } from "../lib/textMarkdown.jsx";
-import { SHADOWS } from "../theme/tokens.js";
+import { useI18n } from "../i18n/I18nContext.jsx";
 import { Dots } from "./Dots.jsx";
 
-export function MetaPanel({ runs, isDark, onClose, modelOptions }) {
+export function MetaPanel({ runs, onClose, modelOptions }) {
+  const { t, locale } = useI18n();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
-  const shadows = isDark ? SHADOWS.dark : SHADOWS.light;
 
   useEffect(() => {
     const prompt = runs
@@ -20,10 +20,10 @@ export function MetaPanel({ runs, isDark, onClose, modelOptions }) {
           .map((j) => {
             const sl = slots[j];
             const label = resolveModelLabel(sl.providerKey, sl.modelValue, modelOptions);
-            return `${label}:\n${r.results[j] || "(keine Antwort)"}`;
+            return `${label}:\n${r.results[j] || t("meta.noAnswer")}`;
           })
           .join("\n\n");
-        return `--- Run ${i + 1}: "${r.prompt}" ---\n${answers}`;
+        return `${t("meta.runHeader", { n: i + 1, prompt: r.prompt })}\n${answers}`;
       })
       .join("\n\n");
     const perfParts = [];
@@ -40,34 +40,43 @@ export function MetaPanel({ runs, isDark, onClose, modelOptions }) {
             return calcCost(sl.modelValue, meta.inputTokens, meta.outputTokens) || 0;
           })
           .reduce((a, b) => a + b, 0) / relevant.length;
-      perfParts.push(`Spalte ${j + 1} (nur Runs mit dieser Spalte): Ø ${(avgLat / 1000).toFixed(2)}s, Ø $${avgCost.toFixed(4)}/Anfrage`);
+      perfParts.push(
+        t("meta.perfColumn", {
+          n: j + 1,
+          latencySec: (avgLat / 1000).toFixed(2),
+          avgCost: avgCost.toFixed(4),
+        })
+      );
     }
     const perfSummary = perfParts.join(" | ");
-    callAnthropicAPI(META_SYSTEM, `${prompt}\n\nPerformance:\n${perfSummary}`, "claude-sonnet-4")
+    const system = metaSystemPrompt(locale);
+    const userBody = `${prompt}\n\n${t("meta.perfSection")}\n${perfSummary}`;
+    callAnthropicAPI(system, userBody, "claude-sonnet-4")
       .then((r) => {
         setText(r.text);
         setLoading(false);
       })
       .catch(() => {
-        setText("Fehler.");
+        setText(t("meta.error"));
         setLoading(false);
       });
-  }, [runs, modelOptions]);
+  }, [runs, modelOptions, locale, t]);
 
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 20, boxShadow: shadows.focus, border: "1px solid transparent", overflow: "hidden", animation: "fadeIn 0.2s ease" }}>
-      <div style={{ padding: "11px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, background: "var(--bg2)" }}>
+    <div className="aidiff-liquid-glass aidiff-liquid-glass--clip" style={{ animation: "fadeIn 0.2s ease" }}>
+      <div className="aidiff-glass-inner-header" style={{ padding: "11px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--t2)" }}>
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--t2)", flex: 1 }}>Meta-Analyse — {runs.length} Runs</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--t2)", flex: 1 }}>{t("meta.title", { count: runs.length })}</span>
         <button
+          type="button"
           onClick={onClose}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", display: "flex", alignItems: "center", padding: 4 }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--t3)")}
+          className="aidiff-glass-control aidiff-glass-control--icon"
+          aria-label={t("meta.close")}
+          style={{ margin: -4 }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" />

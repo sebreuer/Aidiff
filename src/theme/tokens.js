@@ -1,4 +1,4 @@
-/** Gemeinsame visuelle Tokens (ergänzen :root-CSS-Variablen aus App). */
+/** Shared visual tokens (complement :root CSS variables from App). */
 
 export const SHADOWS = {
   light: {
@@ -12,9 +12,6 @@ export const SHADOWS = {
     focus: "0 0.25rem 1.25rem rgba(0,0,0,0.40),  0 0 0 0.5px rgba(255,255,255,0.20)",
   },
 };
-
-export const BEST_COLOR = "#0070f3";
-export const BEST_BG = "rgba(0,112,243,0.07)";
 
 export const border = {
   line: "1px solid var(--border)",
@@ -38,14 +35,8 @@ export const zIndex = {
   dropdown: 400,
 };
 
-export const shadow = {
-  tabActive: "0 0 0 0.5px rgba(31,31,30,0.12), 0 1px 3px rgba(0,0,0,0.06)",
-  dropdownUp: "0 -8px 24px rgba(0,0,0,0.1)",
-  /** Entspricht grob Tailwind shadow-xl (Dialog). */
-  settingsModalLight: "0 25px 50px -12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06)",
-  settingsModalDark: "0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08)",
-};
-
-export function modalBackdrop(isDark) {
-  return isDark ? "rgba(0,0,0,0.45)" : "rgba(20,20,20,0.2)";
+export function modalBackdrop() {
+  return "var(--glass-overlay-bg)";
 }
+
+export { GLASS, v } from "./glassTokens.js";
