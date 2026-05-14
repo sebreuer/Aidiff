@@ -23,6 +23,67 @@ import { buildDiffSystem } from "./i18n/prompts.js";
 import { useI18n } from "./i18n/I18nContext.jsx";
 import { defaultCompareSlotsTwo, defaultModelOptions, getActiveSlotIndices, getProvider, migrateCompareSlotsForApiKeys, resolveModelLabel } from "./lib/modelUtils.js";
 
+const COLOR_SCHEME_STORAGE_KEY = "aidiff-color-scheme";
+
+function readStoredColorSchemeIsDark() {
+  if (typeof window === "undefined") return false;
+  try {
+    const s = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
+    if (s === "dark") return true;
+    if (s === "light") return false;
+  } catch {
+    /* ignore */
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/** Light/Dark: `role="switch"`, Sonne = Hell, Mond = Dunkel. */
+function ThemeSchemeToggle({ isDark, onToggle, ariaLabel }) {
+  return (
+    <button
+      type="button"
+      className="aidiff-theme-scheme-switch"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={ariaLabel}
+      onClick={onToggle}
+    >
+      <span className="aidiff-theme-scheme-switch__track">
+        <span className="aidiff-theme-scheme-switch__thumb" aria-hidden />
+        <span className="aidiff-theme-scheme-switch__icons" aria-hidden>
+          <svg
+            className="aidiff-theme-scheme-switch__icon aidiff-theme-scheme-switch__icon--sun"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+          </svg>
+          <svg
+            className="aidiff-theme-scheme-switch__icon aidiff-theme-scheme-switch__icon--moon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function draftHasAnyConfiguredApiKey(draft) {
   return ["claude", "gemini", "gpt"].some((k) => String(draft[k] ?? "").trim().length > 0);
 }
@@ -76,7 +137,7 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [file, setFile] = useState(null);
   const [fileContent, setFileContent] = useState(null);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => readStoredColorSchemeIsDark());
   const [compareSlots, setCompareSlots] = useState(() => defaultCompareSlotsTwo());
   const [modelOptions, setModelOptions] = useState(() => defaultModelOptions());
   const [modelListsLoaded, setModelListsLoaded] = useState(false);
@@ -130,6 +191,15 @@ export default function App() {
   }, [runs, expandedRuns, showMeta, running]);
 
   useEffect(() => {
+    document.documentElement.setAttribute("data-color-scheme", isDark ? "dark" : "light");
+    try {
+      localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, isDark ? "dark" : "light");
+    } catch {
+      /* ignore */
+    }
+  }, [isDark]);
+
+  useEffect(() => {
     let fontLink = document.getElementById("aidiff-unbounded-font");
     if (!fontLink) {
       fontLink = document.createElement("link");
@@ -138,13 +208,10 @@ export default function App() {
       fontLink.href = "https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&display=swap";
       document.head.appendChild(fontLink);
     }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(mq.matches);
-    mq.addEventListener("change", (e) => setIsDark(e.matches));
     const style = document.createElement("style");
     style.textContent = `
       :root{--bg:#fff;--bg2:#f7f7f5;--bg3:#efefed;--text:#1a1a1a;--t2:#6b7280;--t3:#9ca3af;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);--danger:#dc2626;--modal-input-bg:#f3f4f6;--modal-input-border:rgba(0,0,0,0.12);--modal-input-border-hover:rgba(0,0,0,0.2);--modal-input-border-focus:#1a1a1a;--modal-input-ring:rgba(26,26,26,0.12);--modal-secondary-border:rgba(0,0,0,0.14);--modal-secondary-hover:rgba(0,0,0,0.06);--aidiff-composer-clearance:clamp(160px, 22vh, 280px);}
-      @media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;--text:#ececec;--t2:#9ca3af;--t3:#6b7280;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--modal-input-bg:#141414;--modal-input-border:rgba(255,255,255,0.12);--modal-input-border-hover:rgba(255,255,255,0.22);--modal-input-border-focus:#e5e5e5;--modal-input-ring:rgba(255,255,255,0.12);--modal-secondary-border:rgba(255,255,255,0.16);--modal-secondary-hover:rgba(255,255,255,0.06);}}
+      :root[data-color-scheme="dark"]{--bg:#0f1115;--bg2:#181b22;--bg3:#222830;--text:#f4f4f5;--t2:#c4c9d4;--t3:#9aa3b2;--border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.2);--danger:#fb7185;--modal-input-bg:#14181f;--modal-input-border:rgba(255,255,255,0.16);--modal-input-border-hover:rgba(255,255,255,0.28);--modal-input-border-focus:#f4f4f5;--modal-input-ring:rgba(244,244,245,0.22);--modal-secondary-border:rgba(255,255,255,0.2);--modal-secondary-hover:rgba(255,255,255,0.08);}
       *{box-sizing:border-box;margin:0;padding:0;}
       html,body,#root{height:100%;}
       #root{min-height:100%;background-color:var(--bg);background-image:var(--app-mesh-bg);background-attachment:fixed;}
@@ -592,6 +659,7 @@ export default function App() {
     return (
       <div
         style={{
+          position: "relative",
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -602,6 +670,13 @@ export default function App() {
           textAlign: "center",
         }}
       >
+        <div style={{ position: "absolute", top: 12, right: 24, zIndex: 10 }}>
+          <ThemeSchemeToggle
+            isDark={isDark}
+            onToggle={() => setIsDark((d) => !d)}
+            ariaLabel={isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
+          />
+        </div>
         <AnimatedBrandLogo dockedInHeader={false} />
         <div style={{ marginTop: 28 }}>
           <Dots />
@@ -628,12 +703,19 @@ export default function App() {
           }}
         >
           <HeaderWordmark dockedInHeader={false} />
-          <div ref={settingsMenuRef} style={{ position: "relative" }}>
-            <HeaderSettingsButton
-              label={t("settings.headerButton")}
-              disabled={apiKeysGateActive}
-              onClick={() => setSettingsOpen((o) => !o)}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <ThemeSchemeToggle
+              isDark={isDark}
+              onToggle={() => setIsDark((d) => !d)}
+              ariaLabel={isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
             />
+            <div ref={settingsMenuRef} style={{ position: "relative" }}>
+              <HeaderSettingsButton
+                label={t("settings.headerButton")}
+                disabled={apiKeysGateActive}
+                onClick={() => setSettingsOpen((o) => !o)}
+              />
+            </div>
           </div>
         </header>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
@@ -674,12 +756,19 @@ export default function App() {
         }}
       >
         <HeaderWordmark dockedInHeader={dockedInHeader} />
-        <div ref={settingsMenuRef} style={{ position: "relative" }}>
-          <HeaderSettingsButton
-            label={t("settings.headerButton")}
-            disabled={apiKeysGateActive}
-            onClick={() => setSettingsOpen((o) => !o)}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <ThemeSchemeToggle
+            isDark={isDark}
+            onToggle={() => setIsDark((d) => !d)}
+            ariaLabel={isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
           />
+          <div ref={settingsMenuRef} style={{ position: "relative" }}>
+            <HeaderSettingsButton
+              label={t("settings.headerButton")}
+              disabled={apiKeysGateActive}
+              onClick={() => setSettingsOpen((o) => !o)}
+            />
+          </div>
         </div>
       </header>
       <div className="scroll-area" ref={scrollAreaRef}>

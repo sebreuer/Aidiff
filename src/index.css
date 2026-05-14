@@ -794,24 +794,107 @@ body {
   box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  .aidiff-assessment-mark--s1 {
-    background: rgba(250, 204, 21, 0.2);
-    box-shadow: inset 0 -0.12em 0 rgba(250, 204, 21, 0.15);
-  }
+:root[data-color-scheme="dark"] .aidiff-assessment-mark--s1 {
+  background: rgba(250, 204, 21, 0.2);
+  box-shadow: inset 0 -0.12em 0 rgba(250, 204, 21, 0.15);
+}
 
-  .aidiff-assessment-mark--s2 {
-    background: rgba(52, 211, 153, 0.18);
-    box-shadow: inset 0 -0.12em 0 rgba(52, 211, 153, 0.12);
-  }
+:root[data-color-scheme="dark"] .aidiff-assessment-mark--s2 {
+  background: rgba(52, 211, 153, 0.18);
+  box-shadow: inset 0 -0.12em 0 rgba(52, 211, 153, 0.12);
+}
 
-  .aidiff-assessment-mark--s3 {
-    background: rgba(167, 139, 250, 0.22);
-    box-shadow: inset 0 -0.12em 0 rgba(167, 139, 250, 0.14);
-  }
+:root[data-color-scheme="dark"] .aidiff-assessment-mark--s3 {
+  background: rgba(167, 139, 250, 0.22);
+  box-shadow: inset 0 -0.12em 0 rgba(167, 139, 250, 0.14);
+}
 
-  .aidiff-assessment-mark--neutral {
-    background: rgba(156, 163, 175, 0.14);
-    box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.12);
+:root[data-color-scheme="dark"] .aidiff-assessment-mark--neutral {
+  background: rgba(156, 163, 175, 0.14);
+  box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.12);
+}
+
+/* Theme-Schalter (Sonne/Mond): Fokus sichtbar, Kontrast über CSS-Variablen */
+.aidiff-theme-scheme-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.aidiff-theme-scheme-switch:focus {
+  outline: none;
+}
+
+.aidiff-theme-scheme-switch:focus-visible {
+  outline: 2px solid var(--modal-input-border-focus);
+  outline-offset: 3px;
+}
+
+.aidiff-theme-scheme-switch__track {
+  position: relative;
+  width: 54px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-control-border);
+  background: var(--glass-control-bg);
+  backdrop-filter: var(--glass-control-blur);
+  -webkit-backdrop-filter: var(--glass-control-blur);
+  box-shadow: var(--glass-control-shadow);
+  box-sizing: border-box;
+}
+
+.aidiff-theme-scheme-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  transition: transform 0.2s ease;
+  z-index: 0;
+}
+
+.aidiff-theme-scheme-switch[aria-checked="true"] .aidiff-theme-scheme-switch__thumb {
+  transform: translateX(24px);
+}
+
+.aidiff-theme-scheme-switch__icons {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.aidiff-theme-scheme-switch__icon {
+  flex-shrink: 0;
+  color: var(--t2);
+}
+
+.aidiff-theme-scheme-switch[aria-checked="false"] .aidiff-theme-scheme-switch__icon--sun {
+  color: var(--text);
+}
+
+.aidiff-theme-scheme-switch[aria-checked="true"] .aidiff-theme-scheme-switch__icon--moon {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aidiff-theme-scheme-switch__thumb {
+    transition: none;
   }
 }

@@ -19,6 +19,10 @@ export default {
       metaAnalysisRuns: "Meta analysis ({count} runs)",
       fileBlock: "[File: {name}]",
     },
+    theme: {
+      switchToDark: "Switch to dark mode",
+      switchToLight: "Switch to light mode",
+    },
     settings: {
       title: "Settings",
       gateTitle: "Add your API keys",
