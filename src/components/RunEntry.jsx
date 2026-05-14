@@ -62,7 +62,11 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
 
   return (
     <div className={shellClass} style={{ padding: 0, width: "100%" }}>
-      <div className="aidiff-run-card-head">
+      <div
+        className={
+          typeof onCollapse === "function" ? "aidiff-run-card-head" : "aidiff-run-card-head aidiff-run-card-head--latest"
+        }
+      >
         <div className="aidiff-run-card-head__lead">
           <svg
             width="13"
@@ -108,9 +112,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
               <polyline points="6 15 12 9 18 15" />
             </svg>
           </button>
-        ) : (
-          <div className="aidiff-run-card-head__chevronSlot" aria-hidden />
-        )}
+        ) : null}
       </div>
 
       <div style={{ padding: "12px 16px 16px", width: "100%", minWidth: 0 }}>
@@ -163,7 +165,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             return (
               <div
                 key={i}
-                className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip"
+                className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip aidiff-liquid-glass--no-glass-hover"
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -247,7 +249,11 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
           style={{
             display: "grid",
             gridTemplateColumns:
-              !run.diffLoading && run.diff && diffParsed ? "minmax(0, 3fr) minmax(0, 2fr)" : "minmax(0, 1fr)",
+              !run.diffLoading && run.diff && diffParsed
+                ? diffColumnCount <= 2
+                  ? "minmax(0, 1fr) minmax(0, 1fr)"
+                  : "minmax(0, 3fr) minmax(0, 2fr)"
+                : "minmax(0, 1fr)",
             alignItems: "start",
             gap: 10,
             width: "100%",
@@ -255,7 +261,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
           }}
         >
           <div
-            className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip"
+            className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip aidiff-liquid-glass--no-glass-hover"
             style={{ minWidth: 0, maxWidth: "100%" }}
           >
             <div
@@ -284,7 +290,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             </div>
           </div>
           {!run.diffLoading && run.diff && diffParsed ? (
-            <div style={{ minWidth: 0, maxWidth: "100%" }}>
+            <div style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}>
               <DiffUnterschiedeMiniTable
                 miniRows={diffParsed.miniRows}
                 slots={slots}
@@ -304,7 +310,11 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
             const slot = slots[i] || { providerKey: "gpt", modelValue: "" };
             const pv = getProvider(slot.providerKey);
             return (
-              <div key={i} className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip" style={{ flex: 1, minWidth: 0 }}>
+              <div
+                key={i}
+                className="aidiff-liquid-glass aidiff-liquid-glass--r14 aidiff-liquid-glass--clip aidiff-liquid-glass--no-glass-hover"
+                style={{ flex: 1, minWidth: 0 }}
+              >
                 <div className="aidiff-liquid-glass-head aidiff-run-entry-col-head" style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: pv.dot, flexShrink: 0 }} />
                   <span style={{ fontSize: 11, fontWeight: 500, color: "var(--t2)" }}>{resolveModelLabel(slot.providerKey, slot.modelValue, modelOptions)}</span>

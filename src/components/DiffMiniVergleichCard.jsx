@@ -19,7 +19,7 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount =
 
   return (
     <div
-      className="aidiff-liquid-glass aidiff-liquid-glass--r12 aidiff-liquid-glass--clip"
+      className="aidiff-liquid-glass aidiff-liquid-glass--r12 aidiff-liquid-glass--clip aidiff-liquid-glass--no-glass-hover"
       style={{
         width: "100%",
         maxWidth: "100%",
@@ -29,13 +29,18 @@ export function DiffMiniVergleichCard({ rows, slots, modelOptions, columnCount =
     >
       <table
         style={{
-          width: "max-content",
-          maxWidth: "100%",
+          width: "100%",
           borderCollapse: "collapse",
-          tableLayout: "auto",
+          tableLayout: "fixed",
           fontFamily: "inherit",
         }}
       >
+        <colgroup>
+          <col style={{ width: columnCount <= 2 ? "26%" : "22%" }} />
+          {colIdx.map((i) => (
+            <col key={i} />
+          ))}
+        </colgroup>
         <thead>
           <tr style={{ background: "var(--glass-inner-header-bg)" }}>
             <th scope="col" style={{ ...labelCell, fontWeight: 600, color: "var(--t3)", textAlign: "left", borderRight: innerLine, borderBottom: innerLine }} />

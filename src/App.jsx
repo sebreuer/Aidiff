@@ -698,7 +698,7 @@ export default function App() {
             justifyContent: "space-between",
             width: "100%",
             boxSizing: "border-box",
-            padding: "12px 24px 4px",
+            padding: "12px 24px",
             background: "transparent",
           }}
         >
@@ -751,7 +751,7 @@ export default function App() {
           justifyContent: "space-between",
           width: "100%",
           boxSizing: "border-box",
-          padding: `12px calc(24px + ${scrollAreaVBarPx}px) 4px 24px`,
+          padding: `12px calc(24px + ${scrollAreaVBarPx}px) 12px 24px`,
           background: "transparent",
         }}
       >
@@ -776,6 +776,7 @@ export default function App() {
           <div key={r.id} style={{ marginBottom: 12 }}>
             {expandedRuns.has(r.id) ? (
               <RunEntry
+                key={r.id}
                 run={r}
                 isDark={isDark}
                 modelOptions={modelOptions}
@@ -795,7 +796,12 @@ export default function App() {
 
         {runs.length > 0 && (
           <div style={{ marginBottom: 8, animation: "fadeIn 0.2s ease" }}>
-            <RunEntry run={runs[runs.length - 1]} isDark={isDark} modelOptions={modelOptions} />
+            <RunEntry
+              key={runs[runs.length - 1].id}
+              run={runs[runs.length - 1]}
+              isDark={isDark}
+              modelOptions={modelOptions}
+            />
           </div>
         )}
 

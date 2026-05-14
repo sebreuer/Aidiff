@@ -12,12 +12,9 @@ export function IconTabResults(props) {
   const { size = 13, ...rest } = props;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...rest}>
-      <path d="M3 5h.01" {...stroke} />
-      <path d="M3 12h.01" {...stroke} />
-      <path d="M3 19h.01" {...stroke} />
-      <path d="M8 5h13" {...stroke} />
-      <path d="M8 12h13" {...stroke} />
-      <path d="M8 19h13" {...stroke} />
+      <line x1="6.5" y1="18" x2="6.5" y2="5" {...stroke} strokeWidth={2.75} />
+      <line x1="12" y1="18" x2="12" y2="5" {...stroke} strokeWidth={2.75} />
+      <line x1="17.5" y1="18" x2="17.5" y2="5" {...stroke} strokeWidth={2.75} />
     </svg>
   );
 }

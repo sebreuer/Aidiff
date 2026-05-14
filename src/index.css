@@ -28,6 +28,15 @@ body {
   border-color: var(--glass-stroke-hover);
 }
 
+/* Innere Run-Karten (Results/Diff/Perf, Mini-Tabelle): kein Glas-Hover — nur die äußere Run-Shell. */
+.aidiff-liquid-glass--no-glass-hover:hover {
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-stroke);
+  box-shadow: var(--glass-shadow);
+}
+
 .aidiff-liquid-glass:focus-within {
   box-shadow: var(--glass-shadow-focus);
   border-color: var(--glass-stroke-focus);
@@ -112,6 +121,12 @@ body {
   box-sizing: border-box;
 }
 
+/* Letzte Run-Karte (ohne Einklappen): keine Chevron-Reserve — Tabs nach rechts, bündig mit Rand/Inhalt */
+.aidiff-run-card-head--latest .aidiff-run-card-head__rail {
+  margin-left: auto;
+  min-width: 0;
+}
+
 .aidiff-run-card-head__rail--dots {
   gap: 5px;
 }
@@ -155,14 +170,18 @@ body {
   -webkit-backdrop-filter: none;
 }
 
-/* Run-Karte: Tabs in einer Zeile mit Prompt (Platz der Punkte im zugeklappten Zustand) */
+/* Run-Karte: Tabs als eine Segment-Leiste (ein Track, inaktiv flach) */
 .aidiff-glass-tab-rail--inline {
   margin-bottom: 0;
-  padding: 0;
-  border-radius: 6px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 9px;
   flex-shrink: 0;
   align-items: center;
   flex-wrap: nowrap;
+  background: var(--glass-tab-track);
+  border: 1px solid var(--glass-inner-border);
+  box-shadow: var(--glass-inner-inset);
 }
 
 /* Spaltenköpfe in RunEntry (Resultate / Performance / Diff): gleiche Mindesthöhe, kein Sprung beim Tab-Wechsel */
@@ -655,6 +674,32 @@ body {
   min-height: 28px;
   padding: 6px 8px;
   white-space: nowrap;
+  border-radius: 6px;
+}
+
+/* Inaktiv: in den Track einbetten — kein „Einzelbutton“-Look */
+.aidiff-run-card-head .aidiff-run-card-head__tabCtrl:not([data-on="true"]):not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--t2);
+}
+
+.aidiff-run-card-head .aidiff-run-card-head__tabCtrl:not([data-on="true"]):not(:disabled):hover {
+  background: var(--glass-dropdown-row-hover);
+  border-color: transparent;
+  color: var(--glass-control-color-hover);
+  box-shadow: none;
+}
+
+.aidiff-run-card-head .aidiff-run-card-head__tabCtrl:not([data-on="true"]):disabled {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .aidiff-run-card-head .aidiff-glass-control[data-on="true"] {
@@ -795,23 +840,23 @@ body {
 }
 
 :root[data-color-scheme="dark"] .aidiff-assessment-mark--s1 {
-  background: rgba(250, 204, 21, 0.2);
-  box-shadow: inset 0 -0.12em 0 rgba(250, 204, 21, 0.15);
+  background: rgba(250, 204, 21, 0.4);
+  box-shadow: inset 0 -0.12em 0 rgba(245, 158, 11, 0.5);
 }
 
 :root[data-color-scheme="dark"] .aidiff-assessment-mark--s2 {
-  background: rgba(52, 211, 153, 0.18);
-  box-shadow: inset 0 -0.12em 0 rgba(52, 211, 153, 0.12);
+  background: rgba(52, 211, 153, 0.34);
+  box-shadow: inset 0 -0.12em 0 rgba(34, 197, 94, 0.45);
 }
 
 :root[data-color-scheme="dark"] .aidiff-assessment-mark--s3 {
-  background: rgba(167, 139, 250, 0.22);
-  box-shadow: inset 0 -0.12em 0 rgba(167, 139, 250, 0.14);
+  background: rgba(167, 139, 250, 0.38);
+  box-shadow: inset 0 -0.12em 0 rgba(139, 92, 246, 0.48);
 }
 
 :root[data-color-scheme="dark"] .aidiff-assessment-mark--neutral {
-  background: rgba(156, 163, 175, 0.14);
-  box-shadow: inset 0 -0.12em 0 rgba(107, 114, 128, 0.12);
+  background: rgba(148, 163, 184, 0.3);
+  box-shadow: inset 0 -0.12em 0 rgba(100, 116, 139, 0.4);
 }
 
 /* Theme-Schalter (Sonne/Mond): Fokus sichtbar, Kontrast über CSS-Variablen */
