@@ -18,7 +18,7 @@ export default {
       prompts: "Compare Prompts",
     },
     composer: {
-      placeholder: "Compare two or three models…",
+      placeholder: "Write a prompt...",
       promptPlaceholder: "Write a prompt variant…",
       promptColumnLabel: "Prompt {n}",
       addThirdPromptAria: "Add third prompt",
