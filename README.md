@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Aidiff — empty state with model picker and composer" width="100%" />
+  <img src="public/logoaidiff.png" alt="Aidiff" width="120" />
 </p>
-
----
 
 <h1 align="center">Aidiff</h1>
 
@@ -16,6 +14,10 @@
   <img src="https://img.shields.io/badge/OpenAI-GPT-10a37f" alt="OpenAI" />
   <img src="https://img.shields.io/badge/Anthropic-Claude-D97057" alt="Anthropic" />
   <img src="https://img.shields.io/badge/Google-Gemini-4285F4?logo=google&logoColor=white" alt="Google Gemini" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="Aidiff — empty state with model picker and composer" width="100%" />
 </p>
 
 ---
