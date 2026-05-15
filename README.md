@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Aidiff — empty state with model picker and composer" width="900" />
+  <img src="docs/screenshots/hero.png" alt="Aidiff — empty state with model picker and composer" width="100%" />
 </p>
 
 ---
@@ -32,40 +32,46 @@ Great for prompt engineering, model selection, quality checks, and quick A/B tes
 
 ## Screenshots
 
-### Compare models — results & composer
-
-Three Gemini variants answering the same cold-email prompt. Latency and cost per column, composer with model slots below.
+### Compare models — composer
 
 <p align="center">
-  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="900" />
+  <img src="docs/screenshots/composer_comparemodels.png" alt="Compare Models composer with model pickers" width="100%" />
 </p>
+
+### Compare models — results
+
+Three Gemini variants answering the same cold-email prompt. Latency and cost per column.
 
 <p align="center">
-  <img src="docs/screenshots/composer_comparemodels.png" alt="Compare Models composer with three model pickers" width="520" />
+  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="100%" />
 </p>
 
-### Compare prompts — A/B test wording
+### Compare prompts
 
 Same model (GPT-4o), two prompt variants: professional vs. casual/direct with extra constraints.
 
 <p align="center">
-  <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="520" />
+  <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="100%" />
 </p>
 
-### Difference analysis & performance
+### Difference analysis
 
 <p align="center">
-  <img src="docs/screenshots/differences.png" alt="Difference analysis with assessment and mini comparison" width="440" />
-  &nbsp;
-  <img src="docs/screenshots/performance.png" alt="Performance metrics per model" width="440" />
+  <img src="docs/screenshots/differences.png" alt="Difference analysis with assessment and mini comparison" width="100%" />
 </p>
 
-### API keys (local `.env`)
+### Performance
 
 <p align="center">
-  <img src="docs/screenshots/api_setup.png" alt="First-run API key gate" width="400" />
-  &nbsp;
-  <img src="docs/screenshots/api_settings.png" alt="Settings modal with masked keys" width="400" />
+  <img src="docs/screenshots/performance.png" alt="Performance metrics per model" width="100%" />
+</p>
+
+### API keys
+
+On first launch, enter at least one provider key in the app (saved to your local `.env`), or add keys to `.env` before starting. Later, use **Manage API Keys** in the header to update them.
+
+<p align="center">
+  <img src="docs/screenshots/api_setup.png" alt="API key setup on first launch" width="100%" />
 </p>
 
 ---
