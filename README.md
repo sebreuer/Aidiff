@@ -28,39 +28,53 @@
 
 Great for prompt engineering, model selection, quality checks, and quick A/B tests — without juggling chat tabs.
 
+<p align="center">
+  <img src="docs/screenshots/results_composer.png" alt="Three models compared with results and composer" width="100%" />
+</p>
+
 ---
 
-## Screenshots
+## Composer modes
 
-### Compare models — composer
+### Compare models
+
+Pick two or three models (OpenAI, Anthropic, Google), write one prompt, and send it to every column in parallel.
 
 <p align="center">
   <img src="docs/screenshots/composer_comparemodels.png" alt="Compare Models composer with model pickers" width="100%" />
 </p>
 
-### Compare models — results
-
-Three Gemini variants answering the same cold-email prompt. Latency and cost per column.
-
-<p align="center">
-  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="100%" />
-</p>
-
 ### Compare prompts
 
-Same model (GPT-4o), two prompt variants: professional vs. casual/direct with extra constraints.
+Keep a single model and A/B test two or three prompt variants on the same task — ideal for tone, length, and constraint tweaks.
 
 <p align="center">
   <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="100%" />
 </p>
 
-### Difference analysis
+---
+
+## Results
+
+### Results
+
+Answers side by side with latency and estimated cost per column — switch tabs without losing the run.
+
+<p align="center">
+  <img src="docs/screenshots/results_nocomposer.png" alt="Results tab with two models compared" width="100%" />
+</p>
+
+### Differences
+
+AI summary: keywords per answer, a six-row mini comparison (tone, length, structure…), and a short assessment in your prompt’s language.
 
 <p align="center">
   <img src="docs/screenshots/differences.png" alt="Difference analysis with assessment and mini comparison" width="100%" />
 </p>
 
 ### Performance
+
+Latency, output tokens, tokens per second, and cost per request — spot the fastest or cheapest model at a glance.
 
 <p align="center">
   <img src="docs/screenshots/performance.png" alt="Performance metrics per model" width="100%" />
@@ -258,7 +272,7 @@ On 401/CORS errors: restart the dev server and check keys in `.env` (no stray sp
 
 ## License
 
-Not specified yet — add one (e.g. MIT) if you open-source the repo.
+[MIT](LICENSE) — Copyright (c) 2026 Sebastian Breuer
 
 ---
 
