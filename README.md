@@ -16,6 +16,10 @@
   <img src="https://img.shields.io/badge/Google-Gemini-4285F4?logo=google&logoColor=white" alt="Google Gemini" />
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="Aidiff — empty state with model picker and composer" width="900" />
+</p>
+
 ---
 
 ## What is Aidiff?
@@ -24,18 +28,20 @@
 
 Great for prompt engineering, model selection, quality checks, and quick A/B tests — without juggling chat tabs.
 
-<p align="center">
-  <img src="docs/screenshots/hero.png" alt="Aidiff — compare models side by side" width="100%" />
-</p>
-
 ---
 
 ## Screenshots
 
-### Compare models — composer
+### Compare models — results & composer
+
+Three Gemini variants answering the same cold-email prompt. Latency and cost per column, composer with model slots below.
 
 <p align="center">
-  <img src="docs/screenshots/composer_comparemodels.png" alt="Compare Models composer with three model pickers" width="100%" />
+  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/composer_comparemodels.png" alt="Compare Models composer with three model pickers" width="520" />
 </p>
 
 ### Compare prompts — A/B test wording
@@ -43,37 +49,23 @@ Great for prompt engineering, model selection, quality checks, and quick A/B tes
 Same model (GPT-4o), two prompt variants: professional vs. casual/direct with extra constraints.
 
 <p align="center">
-  <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="100%" />
+  <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="520" />
 </p>
 
-### Results with composer
-
-Three Gemini variants answering the same cold-email prompt. Latency and cost per column.
+### Difference analysis & performance
 
 <p align="center">
-  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="100%" />
-</p>
-
-### Difference analysis
-
-<p align="center">
-  <img src="docs/screenshots/differences.png" alt="Difference analysis with assessment and mini comparison" width="100%" />
-</p>
-
-### Performance
-
-<p align="center">
-  <img src="docs/screenshots/performance.png" alt="Performance metrics per model" width="100%" />
+  <img src="docs/screenshots/differences.png" alt="Difference analysis with assessment and mini comparison" width="440" />
+  &nbsp;
+  <img src="docs/screenshots/performance.png" alt="Performance metrics per model" width="440" />
 </p>
 
 ### API keys (local `.env`)
 
 <p align="center">
-  <img src="docs/screenshots/api_setup.png" alt="First-run API key gate" width="100%" />
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/api_settings.png" alt="Settings modal with masked keys" width="100%" />
+  <img src="docs/screenshots/api_setup.png" alt="First-run API key gate" width="400" />
+  &nbsp;
+  <img src="docs/screenshots/api_settings.png" alt="Settings modal with masked keys" width="400" />
 </p>
 
 ---
