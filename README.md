@@ -16,10 +16,6 @@
   <img src="https://img.shields.io/badge/Google-Gemini-4285F4?logo=google&logoColor=white" alt="Google Gemini" />
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/hero.png" alt="Aidiff — compare models side by side" width="100%" />
-</p>
-
 ---
 
 ## What is Aidiff?
@@ -27,6 +23,10 @@
 **Aidiff** is a local web app for **side-by-side LLM comparison**. Send the same task to two or three models (or test multiple prompt variants on one model) and get structured output: raw answers, an **AI-powered difference analysis**, and **performance metrics** (latency, tokens, estimated cost).
 
 Great for prompt engineering, model selection, quality checks, and quick A/B tests — without juggling chat tabs.
+
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="Aidiff — compare models side by side" width="100%" />
+</p>
 
 ---
 
@@ -44,6 +44,14 @@ Same model (GPT-4o), two prompt variants: professional vs. casual/direct with ex
 
 <p align="center">
   <img src="docs/screenshots/composer_compareprompts.png" alt="Compare Prompts mode with two prompt columns" width="100%" />
+</p>
+
+### Results with composer
+
+Three Gemini variants answering the same cold-email prompt. Latency and cost per column.
+
+<p align="center">
+  <img src="docs/screenshots/results_composer.png" alt="Results tab with three models and composer" width="100%" />
 </p>
 
 ### Difference analysis
