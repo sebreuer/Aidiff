@@ -184,7 +184,7 @@ export function SettingsModal({
                   lineHeight: 1.45,
                   color: "var(--danger)",
                   padding: "10px 12px",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-md)",
                   background: "rgba(220, 38, 38, 0.08)",
                   border: "1px solid rgba(220, 38, 38, 0.2)",
                 }}

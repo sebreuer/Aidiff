@@ -54,6 +54,22 @@ export const GLASS = /** @type {const} */ ({
   controlColorHover: "--glass-control-color-hover",
   controlRadius: "--glass-control-radius",
 
+  radiusMicro: "--radius-micro",
+  radiusSm: "--radius-sm",
+  radiusMd: "--radius-md",
+  radiusLg: "--radius-lg",
+  radiusXl: "--radius-xl",
+  radiusXxl: "--radius-xxl",
+  radiusModal: "--radius-modal",
+  radiusCard: "--radius-card",
+  radiusPill: "--radius-pill",
+  radiusSegmentTrack: "--radius-segment-track",
+  radiusSegmentInner: "--radius-segment-inner",
+  radiusTabTrack: "--radius-tab-track",
+  radiusTabInner: "--radius-tab-inner",
+  radiusNestedControl: "--radius-nested-control",
+  radiusNestedInset: "--radius-nested-inset",
+
   slotTriggerHoverBg: "--glass-slot-trigger-hover-bg",
 
   overlayBg: "--glass-overlay-bg",

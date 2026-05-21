@@ -7,7 +7,7 @@ import {
   matchesModelSearchQuery,
   resolveModelLabel,
 } from "../lib/modelUtils.js";
-import { zIndex } from "../theme/tokens.js";
+import { radius, zIndex } from "../theme/tokens.js";
 import { useI18n } from "../i18n/I18nContext.jsx";
 
 /** One compare column: portal dropdown (same backdrop-filter as composer); opens upward. */
@@ -120,7 +120,7 @@ export function SearchableSlotPicker({
 
   const hasModel = Boolean(modelValue);
   const currentLabel = hasModel ? resolveModelLabel(providerKey, modelValue, modelOptions) : emptyPlaceholder || resolveModelLabel(providerKey, modelValue, modelOptions);
-  const R = 19;
+  const R = radius.card;
   const hoverRadius = position === "first" ? `${R}px 0 0 0` : position === "last" ? `0 ${R}px 0 0` : "0";
 
   const dropdownPanel = open && (

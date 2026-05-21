@@ -17,7 +17,7 @@ body {
   border: 1px solid var(--glass-stroke);
   box-shadow: var(--glass-shadow);
   transition: var(--glass-transition), backdrop-filter 0.22s ease;
-  border-radius: 20px;
+  border-radius: var(--radius-card);
 }
 
 .aidiff-liquid-glass:hover {
@@ -43,15 +43,15 @@ body {
 }
 
 .aidiff-liquid-glass--r16 {
-  border-radius: 16px;
+  border-radius: var(--radius-modal);
 }
 
 .aidiff-liquid-glass--r14 {
-  border-radius: 14px;
+  border-radius: var(--radius-xxl);
 }
 
 .aidiff-liquid-glass--r12 {
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
 }
 
 .aidiff-liquid-glass--clip {
@@ -61,6 +61,17 @@ body {
 /* Composer: eine Glas-Karte; overflow sichtbar für nach oben portaliertes Dropdown */
 .aidiff-liquid-glass--composer-root {
   overflow: visible;
+  /* Verschachtelte Ecken: R_inner = R_outer − inset (s. .aidiff-composer-toolbar) */
+  --composer-outer-radius: var(--radius-card);
+  --composer-toolbar-inset: var(--radius-nested-inset);
+  --composer-nested-control-radius: var(--radius-nested-control);
+}
+
+/* Toolbar-Controls (Anhang, Senden): Radius passend zur Composer-Ecke */
+.aidiff-composer-toolbar .aidiff-glass-control,
+.aidiff-composer-toolbar .aidiff-glass-send,
+.aidiff-composer-toolbar .aidiff-glass-pill {
+  border-radius: var(--composer-nested-control-radius);
 }
 
 /* Obere Modellzeile: keine zweite Fläche — nur Trennlinie, gleiche Frost-Schicht wie der Rest */
@@ -68,7 +79,7 @@ body {
   position: relative;
   z-index: 1;
   overflow: visible;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   border-bottom: 1px solid var(--glass-inner-border);
 }
 
@@ -163,7 +174,7 @@ body {
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: var(--radius-tab-track);
   margin-bottom: 12px;
   background: transparent;
   backdrop-filter: none;
@@ -175,7 +186,7 @@ body {
   margin-bottom: 0;
   padding: 3px;
   gap: 2px;
-  border-radius: 9px;
+  border-radius: var(--radius-tab-track);
   flex-shrink: 0;
   align-items: center;
   flex-wrap: nowrap;
@@ -203,7 +214,7 @@ body {
   margin: 0;
   padding: 4px 6px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-tab-track);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -457,7 +468,7 @@ body {
   justify-content: center;
   min-height: 0;
   padding: 3px 9px;
-  border-radius: 7px;
+  border-radius: var(--radius-tab-inner);
   border: 1px solid var(--glass-control-border);
   cursor: pointer;
   background: var(--glass-control-bg);
@@ -507,7 +518,7 @@ body {
   box-sizing: border-box;
   margin-top: 6px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--glass-dropdown-search-border);
   font-size: 13px;
   font-family: inherit;
@@ -533,7 +544,7 @@ body {
 }
 
 .aidiff-glass-dialog {
-  border-radius: 16px;
+  border-radius: var(--radius-modal);
   border: 1px solid var(--glass-dialog-stroke);
   background: var(--glass-dialog-fill);
   backdrop-filter: var(--glass-dialog-blur);
@@ -550,7 +561,7 @@ body {
   padding: 4px 8px;
   font-size: 12px;
   color: var(--t2);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--glass-stroke);
   background: var(--glass-fill);
   backdrop-filter: var(--glass-blur);
@@ -575,7 +586,7 @@ body {
   color: var(--t3);
   display: flex;
   align-items: center;
-  border-radius: 4px;
+  border-radius: var(--radius-micro);
   transition: color 0.12s ease, background 0.12s ease;
 }
 
@@ -596,7 +607,7 @@ body {
   box-shadow: var(--glass-control-shadow);
   cursor: pointer;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   color: var(--t2);
   font-size: 12px;
   font-family: inherit;
@@ -625,8 +636,8 @@ body {
   margin: 0 auto;
   position: relative;
   z-index: 6;
-  padding: 3px;
-  border-radius: 14px;
+  padding: var(--radius-segment-pad);
+  border-radius: var(--radius-segment-track);
   background: var(--glass-control-bg);
   border: 1px solid var(--glass-control-border);
   backdrop-filter: var(--glass-control-blur);
@@ -639,7 +650,7 @@ body {
   flex: 1 1 0%;
   min-width: 0;
   border: none;
-  border-radius: 11px;
+  border-radius: var(--radius-segment-inner);
   padding: 8px 10px;
   font-family: inherit;
   font-size: 12px;
@@ -693,7 +704,7 @@ body {
 .aidiff-glass-send {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   border: 1px solid var(--glass-control-border);
   cursor: pointer;
   display: flex;
@@ -722,7 +733,7 @@ body {
 /* Perf-Metrik-Kachel */
 .aidiff-glass-metric {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   border: 1px solid var(--glass-metric-border);
   background: var(--glass-metric-bg);
   backdrop-filter: var(--glass-blur-soft);
@@ -750,7 +761,7 @@ body {
   gap: 5px;
   min-height: 0;
   padding: 4px 12px;
-  border-radius: 7px;
+  border-radius: var(--radius-tab-inner);
   border: 1px solid var(--glass-control-border);
   cursor: pointer;
   background: var(--glass-control-bg);
@@ -794,7 +805,7 @@ body {
   min-height: 28px;
   padding: 6px 8px;
   white-space: nowrap;
-  border-radius: 6px;
+  border-radius: var(--radius-tab-inner);
 }
 
 /* Inaktiv: in den Track einbetten — kein „Einzelbutton“-Look */
@@ -837,7 +848,7 @@ body {
   min-width: 5rem;
   height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
@@ -864,7 +875,7 @@ body {
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--glass-control-border-hover);
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
@@ -915,7 +926,7 @@ body {
 .composer-model-plusBtn {
   width: 100%;
   border: none;
-  border-radius: 0 20px 0 0;
+  border-radius: 0 var(--radius-card) 0 0;
   background: transparent;
   color: var(--t3);
   cursor: pointer;
@@ -977,7 +988,7 @@ body {
   width: 26px;
   height: 26px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--glass-control-radius);
   background: transparent;
   color: var(--t3);
   font-size: 18px;
@@ -1019,7 +1030,7 @@ body {
 /* Diff Assessment + Mini-Tabelle: Textmarker nach Antwort-Spalte */
 .aidiff-assessment-mark {
   font-weight: 650;
-  border-radius: 4px;
+  border-radius: var(--radius-micro);
   padding: 0.06em 0.28em;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
@@ -1075,7 +1086,7 @@ body {
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
 
@@ -1092,7 +1103,7 @@ body {
   position: relative;
   width: 54px;
   height: 30px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--glass-control-border);
   background: var(--glass-control-bg);
   backdrop-filter: var(--glass-control-blur);

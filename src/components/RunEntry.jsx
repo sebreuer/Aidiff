@@ -187,7 +187,7 @@ export function RunEntry({ run, isDark, modelOptions, onCollapse }) {
               alignItems: "center",
               gap: 5,
               padding: "3px 8px",
-              borderRadius: 999,
+              borderRadius: "var(--radius-pill)",
               background: "var(--glass-control-bg)",
               border: "1px solid var(--glass-control-border)",
               backdropFilter: "var(--glass-control-blur)",

@@ -19,7 +19,9 @@ export const border = {
   transparent: "1px solid transparent",
 };
 
+/** px values — keep in sync with `glass.css` (--radius-*). */
 export const radius = {
+  micro: 4,
   sm: 6,
   md: 8,
   lg: 10,
@@ -27,7 +29,27 @@ export const radius = {
   xxl: 14,
   modal: 16,
   card: 20,
+  pill: 999,
 };
+
+/** CSS custom property names for radius (use with `v()` from glassTokens). */
+export const RADIUS = /** @type {const} */ ({
+  micro: "--radius-micro",
+  sm: "--radius-sm",
+  md: "--radius-md",
+  lg: "--radius-lg",
+  xl: "--radius-xl",
+  xxl: "--radius-xxl",
+  modal: "--radius-modal",
+  card: "--radius-card",
+  pill: "--radius-pill",
+  segmentTrack: "--radius-segment-track",
+  segmentInner: "--radius-segment-inner",
+  tabTrack: "--radius-tab-track",
+  tabInner: "--radius-tab-inner",
+  nestedControl: "--radius-nested-control",
+  nestedInset: "--radius-nested-inset",
+});
 
 export const zIndex = {
   logo: 30,

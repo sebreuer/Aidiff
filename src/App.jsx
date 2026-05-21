@@ -270,7 +270,7 @@ export default function App() {
       .scroll-area{flex:1;overflow-y:auto;scrollbar-gutter:stable;padding:20px 24px;padding-bottom:calc(12px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
       .scroll-area::-webkit-scrollbar{width:6px;}
       .scroll-area::-webkit-scrollbar-track{background:transparent;}
-      .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+      .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:var(--radius-micro);}
       .composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:28;padding:10px 24px calc(32px + env(safe-area-inset-bottom, 0px));background:transparent;pointer-events:none;overflow:visible;}
       .composer-wrap .composer-inner{pointer-events:auto;overflow:visible;display:flex;flex-direction:column;gap:12px;}
       .aidiff-meta-above-composer{flex-shrink:0;padding:0 24px;padding-bottom:calc(10px + var(--aidiff-composer-clearance) + env(safe-area-inset-bottom, 0px));}
@@ -754,7 +754,7 @@ export default function App() {
           }}
         />
       ) : null}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px 8px 6px" }}>
+      <div className="aidiff-composer-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 8 }}>
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             <ComposerStyleIconButton ariaLabel={t("composer.attachFile")} onClick={() => fileInputRef.current?.click()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

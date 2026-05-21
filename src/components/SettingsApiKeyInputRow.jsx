@@ -73,7 +73,7 @@ export function SettingsApiKeyInputRow({ pv, value, disabled, isEditing, onStart
             boxSizing: "border-box",
             height: 36,
             padding: "8px 12px",
-            borderRadius: 8,
+            borderRadius: "var(--radius-md)",
             border: "1px solid var(--modal-input-border)",
             background: "var(--modal-input-bg)",
             color: "var(--text)",
